@@ -1,12 +1,11 @@
 void display() {
-  /*
   if (!(isnan(humInt) || isnan(tempInt))) {
     lcd.setCursor(20, 20);
     lcd.print("Teplota a vlhkost");
     lcd.setCursor(20, 40);
     lcd.print(tempInt, 1);
     lcd.print(" ");
-    lcd.print(char(248));
+    lcd.print(char(247));
     lcd.print("C  ");
     lcd.print(humInt, 1);
     lcd.print(" %");
@@ -17,7 +16,7 @@ void display() {
     lcd.print("Strop: ");
     lcd.print(tempCeiling, 1);
     lcd.print(" ");
-    lcd.print(char(248));
+    lcd.print(char(247));
     lcd.print("C");
   } else {
     Serial.println("Error: Could not read temperature data");
@@ -28,7 +27,7 @@ void display() {
     lcd.print("Podlaha: ");
     lcd.print(tempFloor, 1);
     lcd.print(" ");
-    lcd.print(char(248));
+    lcd.print(char(247));
     lcd.print("C  ");
   } else {
     Serial.println("Error: Could not read temperature data");
@@ -36,7 +35,7 @@ void display() {
 
   lcd.setCursor(20, 100);
   lcd.print("Svetlo: ");
-  lcd.print(lux);
+  lcd.print(illumination);
   lcd.println(" lx");
 
   /*

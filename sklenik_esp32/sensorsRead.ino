@@ -6,5 +6,5 @@ void sensorsRead() {
     Serial.print("Read DHT22 failed, err=");
     Serial.println(err);
   }
-  lux = lightMeter.readLightLevel();
+  illumination = lightMeter.readLightLevel();
 }

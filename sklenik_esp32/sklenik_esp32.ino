@@ -1,83 +1,75 @@
-#include <esp_task_wdt.h>
-#include <SPI.h>
-#include <Wire.h>
-#include <SimpleDHT.h>
-#include <DallasTemperature.h>
-#include <BH1750.h>
-#include <DS3232RTC.h>
-#include <Adafruit_ILI9341.h>
-#include <Adafruit_GFX.h>
-#include <Ethernet.h>
-#include <ThingSpeak.h>
+#include <esp_task_wdt.h>       // watchdog
+#include <SPI.h>                // SPI bus
+#include <Wire.h>               // IIC bus
+#include <SimpleDHT.h>          // Sensor DHT22 (temperature & humidity)
+#include <DallasTemperature.h>  // Sensor DS18B20 (temperature)
+#include <BH1750.h>             // Sensor BH1750 (illuminance)
+#include <DS3232RTC.h>          // RTC DS3231 (real time clock)
+#include <Adafruit_ILI9341.h>   // LCD display
+#include <Adafruit_GFX.h>       // LCD display
+#include <Ethernet.h>           // Ethernet W5500
+#include <ThingSpeak.h>         // ThingSpeak
 
 // nastavení PINů
-//#define VSPI_MISO   19//MISO
-//#define VSPI_MOSI   23//MOSI
-//#define VSPI_SCLK   18//SCK
-#define VSPI_SS     5//SS
-
-//#define HSPI_MISO   12
-//#define HSPI_MOSI   13
-//#define HSPI_SCLK   14
-#define HSPI_SS     15
-
-#define TFT_DC     26
-#define TFT_RST  27
-
-#define DHT 32
-#define OW 33
+#define VSPI_SS   5   // Display
+#define HSPI_SS   15  // Ethernet
+#define TFT_DC    26  // Display
+#define TFT_RST   27  // Display
+#define DHT       32  // DHT22
+#define OW        33  // OneWire bus (DS18B20)
 
 // ostatní konstanty
-#define WDT_TIMEOUT 4
-#define DALLAS_RESOLUTION 11
-#define DELAY1 10 // ovládání, zatím nevyužito
-#define DELAY2 1000 // display
-#define DELAY3 2500 // sensorsRead
-#define DELAY4 20000 // cloudUpdate
+#define WDT_TIMEOUT       4       // watchdog timeout [s]
+#define DALLAS_RESOLUTION 11      // resolution of DS18B20 sensors
+#define DELAY1            10      // ????
+#define DELAY2            1000    // display
+#define DELAY3            2500    // sensorsRead
+#define DELAY4            20000   // cloudUpdate
+#define BACKGROUND        0x0000  // black 
+#define TEXTSIZE          2 
+#define TEXTCOLOR         0xFFFF  // white
 
-//SPIClass * vspi = NULL;
-//SPIClass * hspi = NULL;
-//vspi = new SPIClass(VSPI);
-//hspi = new SPIClass(HSPI);
-
+// SPI bus init
 SPIClass  vspi(VSPI);
 SPIClass  hspi(HSPI);
+
+// Display init
 Adafruit_ILI9341 lcd=Adafruit_ILI9341(&hspi, TFT_DC, HSPI_SS, TFT_RST);
 
-
+// DHT22 init
 SimpleDHT22 dht22(DHT);
 int err = SimpleDHTErrSuccess;
 
-OneWire OWBus(OW);
-DallasTemperature ds18b20(&OWBus);
+// DS18B20 init
+OneWire owBus(OW);
+DallasTemperature ds18b20(&owBus);
 DeviceAddress ds18b20Floor = { 0x28, 0x66, 0x7E, 0x72, 0x0B, 0x00, 0x00, 0xCE };
 DeviceAddress ds18b20Ceiling = { 0x28, 0xCE, 0x2F, 0x72, 0x0B, 0x00, 0x00, 0x6B };
-
-//Arduino_ESP32SPI bus = Arduino_ESP32SPI(TFT_DC, HSPI_SS, HSPI_SCLK, HSPI_MOSI, HSPI_MISO);
-//  Arduino_ILI9341 lcd = Arduino_ILI9341(hspi, TFT_RESET);
-
-
 DS3232RTC myRTC;
 
+// BH1750 init
 BH1750 lightMeter;
 
+// Ethernet init
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(192, 168, 2, 177);
 IPAddress myDns(192, 168, 2, 1);
 EthernetClient client;
 
+// ThingSpeak init
 unsigned long myChannelNumber = 1903776;
 const char* myWriteAPIKey = "99A0T3QXV0LMP6MA";
 
-unsigned long timer1 = 0, timer2 = 0, timer3 = 0, timer4 = 0;
-float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, lux;
-float heatingTemp, circulationDiff, heatingHyst, circulationHyst;
-bool heatingActive, circulationActive;
+// Variables
+unsigned long timer1 = 0, timer2 = 0, timer3 = 0, timer4 = 0;           // Task timers
+float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illumination;    // Measured values
+float setHeatingTemp, setCirculationDiff, heatingHyst, circulationHyst; // Actuators settings
+bool heatingActive, circulationActive;                                  // Actuators status
 tmElements_t tm;
 
 void setup() {
-  Serial.begin(115200);  // vypis do serial monitoru, nezapojovat piny 0, 1
-  // inicializace modulů
+  Serial.begin(115200);  // Serial monitor (debug)
+
   vspi.begin();
   hspi.begin();
   pinMode(VSPI_SS, OUTPUT);
@@ -85,24 +77,22 @@ void setup() {
 
   Wire.begin();
   lightMeter.begin();
+
   Ethernet.init(VSPI_SS);
   if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to configure Ethernet using DHCP");
-    // Check for Ethernet hardware present
+    Serial.println("Failed to configure Ethernet using DHCP.");
     if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-      Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
+      Serial.println("Ethernet module was not found.");
     }
     if (Ethernet.linkStatus() == LinkOFF) {
       Serial.println("Ethernet cable is not connected.");
     }
-    // try to configure using IP address instead of DHCP:
     Ethernet.begin(mac, ip, myDns);
   } else {
-    Serial.print("  DHCP assigned IP ");
+    Serial.print("DHCP assigned IP: ");
     Serial.println(Ethernet.localIP());
   }
-  // give the Ethernet shield a second to initialize:
-  delay(1000);
+  delay(1000); // Give the Ethernet module a second to initialize
 
   ds18b20.begin();
   ds18b20.setResolution(ds18b20Floor, DALLAS_RESOLUTION);
@@ -113,33 +103,28 @@ void setup() {
   timer3 = millis();
 
   lcd.begin();
-  lcd.fillScreen(255);
-  lcd.setTextSize(2);
-  lcd.setTextColor(0);
-  lcd.setCursor(20, 20);
-  lcd.print("Teplota a vlhkost");
+  lcd.setRotation(0);
+  lcd.fillScreen(BACKGROUND);
+  lcd.setTextSize(TEXTSIZE);
+  lcd.setTextColor(TEXTCOLOR, BACKGROUND);
   
   myRTC.begin();
   if (myRTC.oscStopped(false)) {  // check the oscillator
-    // this will adjust to the date and time at compilation
     //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     //rtc.adjust(DateTime(2014, 1, 21, 3, 3, 3));
     //Serial.println("Time adjusted.");
-    //Serial.flush();
   }
 
-  // we don't need the 32K Pin, so disable it
-  //rtc.disable32K();
+  //rtc.disable32K(); // we don't need the 32K Pin, so disable it
 
-  // stop oscillating signals at SQW Pin
-  myRTC.squareWave(DS3232RTC::SQWAVE_NONE);
+  myRTC.squareWave(DS3232RTC::SQWAVE_NONE); // stop oscillating signals at SQW Pin
   
-  ThingSpeak.begin(client);  // Initialize ThingSpeak
-  // make a delay before enable WDT
-  // this delay help to complete all initial tasks
-  delay(2000);
-//  esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
-//  esp_task_wdt_add(NULL); //add current thread to WDT watch
+  ThingSpeak.begin(client); // initialize ThingSpeak
+  
+  delay(2000); // delay to complete all initial tasks before enable WDT
+
+  esp_task_wdt_init(WDT_TIMEOUT, true); // enable panic so ESP32 restarts
+  esp_task_wdt_add(NULL); // add current thread to WDT watch
 }
 
 void loop() {
@@ -155,5 +140,5 @@ void loop() {
     timer4 = millis();
     cloudUpdate();
   }
-  //esp_task_wdt_reset();  // v loop lze použít vícekrát
+  esp_task_wdt_reset();
 }
