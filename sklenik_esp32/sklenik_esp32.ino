@@ -13,6 +13,7 @@
 // nastavení PINů
 #define VSPI_SS   5   // Display
 #define HSPI_SS   15  // Ethernet
+#define TFT_BL    25  // Display backlight
 #define TFT_DC    26  // Display
 #define TFT_RST   27  // Display
 #define DHT       32  // DHT22
@@ -20,14 +21,17 @@
 
 // ostatní konstanty
 #define WDT_TIMEOUT       4       // watchdog timeout [s]
-#define DALLAS_RESOLUTION 11      // resolution of DS18B20 sensors
+#define DALLAS_RESOLUTION 11      // resolution of DS18B20 sensors (11 = 0,125 °C)
 #define DELAY1            10      // ????
 #define DELAY2            1000    // display
 #define DELAY3            2500    // sensorsRead
 #define DELAY4            20000   // cloudUpdate
 #define BACKGROUND        0x0000  // black 
-#define TEXTSIZE          2 
+#define TEXTSIZE          3
 #define TEXTCOLOR         0xFFFF  // white
+#define LED_FREQ          5000    // display backlight PWM
+#define LED_CHANNEL       0       // display backlight PWM
+#define LED_RESOLUTION    8       // display backlight PWM
 
 // SPI bus init
 SPIClass  vspi(VSPI);
@@ -66,6 +70,7 @@ float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illumination;   
 float setHeatingTemp, setCirculationDiff, heatingHyst, circulationHyst; // Actuators settings
 bool heatingActive, circulationActive;                                  // Actuators status
 tmElements_t tm;
+byte lcdBackLight = 100; // lcd backlight
 
 void setup() {
   Serial.begin(115200);  // Serial monitor (debug)
@@ -76,7 +81,11 @@ void setup() {
   pinMode(HSPI_SS, OUTPUT);
 
   Wire.begin();
-  lightMeter.begin();
+  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
+    Serial.println(F("BH1750 begin"));
+  } else {
+    Serial.println(F("Error initialising BH1750"));
+  }
 
   Ethernet.init(VSPI_SS);
   if (Ethernet.begin(mac) == 0) {
@@ -114,12 +123,15 @@ void setup() {
     //rtc.adjust(DateTime(2014, 1, 21, 3, 3, 3));
     //Serial.println("Time adjusted.");
   }
-
   //rtc.disable32K(); // we don't need the 32K Pin, so disable it
-
   myRTC.squareWave(DS3232RTC::SQWAVE_NONE); // stop oscillating signals at SQW Pin
   
   ThingSpeak.begin(client); // initialize ThingSpeak
+
+  // configure display backlight PWM
+  ledcSetup(LED_CHANNEL, LED_FREQ, LED_RESOLUTION);
+  ledcAttachPin(TFT_BL, LED_CHANNEL);
+
   
   delay(2000); // delay to complete all initial tasks before enable WDT
 
