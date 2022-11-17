@@ -10,7 +10,6 @@ void sensorsRead() {
     illumination = lightMeter.readLightLevel();
 
   // lightMeter autoadjust & display baclight control
-  // https://learn.microsoft.com/en-us/windows/win32/sensorsapi/understanding-and-interpreting-lux-values
   if (illumination < 0) {
     Serial.println("Error condition detected");
   } else if (illumination > 40000.0) {

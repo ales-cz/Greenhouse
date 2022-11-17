@@ -1,5 +1,6 @@
-#include <esp_task_wdt.h>       // watchdog
+#include <esp_task_wdt.h>       // WatchDog
 #include <SPI.h>                // SPI bus
+#include <SPIFFS.h>             // SPI Flash File Storage
 #include <Wire.h>               // IIC bus
 #include <SimpleDHT.h>          // Sensor DHT22 (temperature & humidity)
 #include <DallasTemperature.h>  // Sensor DS18B20 (temperature)
@@ -7,15 +8,17 @@
 #include <DS3232RTC.h>          // RTC DS3231 (real time clock)
 #include <Adafruit_ILI9341.h>   // LCD display
 #include <Adafruit_GFX.h>       // LCD display
+#include <SPIFFS_ImageReader.h> // Load images from SPIFFS partition for Adafruit_GFX
+#include <Fonts/FreeSans12pt7b.h>
 #include <Ethernet.h>           // Ethernet W5500
 #include <ThingSpeak.h>         // ThingSpeak
 
 // nastavení PINů
-#define VSPI_SS   5   // Display
-#define HSPI_SS   15  // Ethernet
+#define VSPI_SS   5   // Display CS
+#define HSPI_SS   15  // Ethernet CS
 #define TFT_BL    25  // Display backlight
-#define TFT_DC    26  // Display
-#define TFT_RST   27  // Display
+#define TFT_DC    26  // Display DC
+#define TFT_RST   27  // Display RST
 #define DHT       32  // DHT22
 #define OW        33  // OneWire bus (DS18B20)
 
@@ -26,10 +29,10 @@
 #define DELAY2            1000    // display
 #define DELAY3            2500    // sensorsRead
 #define DELAY4            20000   // cloudUpdate
-#define BACKGROUND        0x0000  // black 
-#define TEXTSIZE          3
-#define TEXTCOLOR         0xFFFF  // white
-#define LED_FREQ          5000    // display backlight PWM
+#define BACKGROUND        0xFFFF  // white 
+#define TEXTSIZE          1
+#define TEXTCOLOR         0x0000  // black
+#define LED_FREQ          10000   // display backlight PWM
 #define LED_CHANNEL       0       // display backlight PWM
 #define LED_RESOLUTION    8       // display backlight PWM
 
@@ -39,6 +42,7 @@ SPIClass  hspi(HSPI);
 
 // Display init
 Adafruit_ILI9341 lcd=Adafruit_ILI9341(&hspi, TFT_DC, HSPI_SS, TFT_RST);
+SPIFFS_ImageReader reader;
 
 // DHT22 init
 SimpleDHT22 dht22(DHT);
@@ -82,9 +86,9 @@ void setup() {
 
   Wire.begin();
   if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
-    Serial.println(F("BH1750 begin"));
+    Serial.println("BH1750 begin");
   } else {
-    Serial.println(F("Error initialising BH1750"));
+    Serial.println("Error initialising BH1750");
   }
 
   Ethernet.init(VSPI_SS);
@@ -111,12 +115,30 @@ void setup() {
 
   timer3 = millis();
 
+  // initialize SPIFFS
+  if(!SPIFFS.begin()) {
+    Serial.println("SPIFFS initialisation failed!");
+    while (1);
+  }
+
   lcd.begin();
-  lcd.setRotation(0);
+  lcd.setRotation(1);
   lcd.fillScreen(BACKGROUND);
   lcd.setTextSize(TEXTSIZE);
-  lcd.setTextColor(TEXTCOLOR, BACKGROUND);
-  
+  lcd.setTextColor(TEXTCOLOR, BACKGROUND); // todo vyhodit background
+  lcd.setFont(&FreeSans12pt7b);
+  reader.drawBMP("/thermometer.bmp", lcd, 5, 27);
+  reader.drawBMP("/droplet.bmp", lcd, 5, 57);
+  reader.drawBMP("/sun.bmp", lcd, 5, 87);
+  reader.drawBMP("/thermometer.bmp", lcd, 5, 117);
+  reader.drawBMP("/droplet.bmp", lcd, 5, 147);
+  reader.drawBMP("/thermometer.bmp", lcd, 5, 177);
+  reader.drawBMP("/thermometer.bmp", lcd, 5, 207);
+  reader.drawBMP("/heating.bmp", lcd, 270, 2);
+  reader.drawBMP("/fan.bmp", lcd, 270, 55);
+  reader.drawBMP("/ethernet.bmp", lcd, 270, 105);
+  reader.drawBMP("/cloud.bmp", lcd, 270, 155);
+
   myRTC.begin();
   if (myRTC.oscStopped(false)) {  // check the oscillator
     //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));

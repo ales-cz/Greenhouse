@@ -1,8 +1,4 @@
 void cloudUpdate() {
-  Serial.println(tempInt);
-  Serial.println(humInt);
-  Serial.println(tempExt);
-  Serial.println(humExt);
   ThingSpeak.setField(1, tempInt);
   ThingSpeak.setField(2, humInt);
   ThingSpeak.setField(3, tempExt);

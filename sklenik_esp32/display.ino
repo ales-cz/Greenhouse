@@ -21,55 +21,50 @@ void printValue(float value, int length, int digits, char u1, char u2 = ' ') {
 void display() {
   ledcWrite(LED_CHANNEL, lcdBackLight);
   
-  lcd.setCursor(50, 2);
+  lcd.setCursor(30, 22);
   myRTC.read(tm);
   printDigits(tm.Hour, ':');
   printDigits(tm.Minute, ':');
   printDigits(tm.Second);
   
   if (!(isnan(humInt) || isnan(tempInt))) {
-    lcd.setCursor(0, 32);
-    //lcd.print("Teplota: ");
+    lcd.setCursor(30, 52);
     printValue(tempInt, 5, 1, char(247), 'C');
-    lcd.setCursor(0, 62);
-    //lcd.print("Vlhkost: ");
+    lcd.setCursor(30, 82);
     printValue(humInt, 5, 1, '%');
   }
 
   if (!(illumination < 0)) {
-    lcd.setCursor(0, 92);
-    //lcd.print("Svetlo:  ");
+    lcd.setCursor(30, 112);
     printValue(illumination, 5, 0, 'l', 'x');
   }
 
   if (!(isnan(humExt) || isnan(tempExt))) {
-    lcd.setCursor(0, 122);
-    //lcd.print("Teplota: ");
+    lcd.setCursor(30, 142);
     printValue(tempExt, 5, 1, char(247), 'C');
-    lcd.setCursor(0, 152);
-    //lcd.print("Vlhkost: ");
+    lcd.setCursor(30, 172);
     printValue(humExt, 5, 1, '%');
   }
 
   if (tempCeiling != DEVICE_DISCONNECTED_C) {
-    lcd.setCursor(0, 182);
-    //lcd.print("Strop:   ");
+    lcd.setCursor(30, 202);
     printValue(tempCeiling, 5, 1, char(247), 'C');
   } else {
     Serial.println("Error: Could not read temperature data");
   }
 
   if (tempFloor != DEVICE_DISCONNECTED_C) {
-    lcd.setCursor(0, 212);
-    //lcd.print("Podlaha: ");
+    lcd.setCursor(30, 232);
     printValue(tempFloor, 5, 1, char(247), 'C');
   } else {
     Serial.println("Error: Could not read temperature data");
   }
+  /*
   lcd.setCursor(0, 242);
   lcd.print("Vytapeni");
   lcd.setCursor(0, 272);
   lcd.print("   ");
   lcd.setCursor(0, 272);
   lcd.print(lcdBackLight);//"Cirkulace");
+  */
 }
