@@ -1,70 +1,64 @@
 // utility function for digital clock display
-void printDigits(int digits, char ch = ' ') {
-  if (digits < 10)
-    lcd.print('0');
-  lcd.print(digits);
-  if (ch != ' ')
-    lcd.print(ch);
+void printDigits(int digits, int i) {
+  lcdBuf[i] = '0' + digits / 10;
+  lcdBuf[i + 1] = '0' + digits % 10;
+  if (i < 6)
+    lcdBuf[i + 2] = ':';
 }
 
 // utility function for measured values display
-void printValue(float value, int length, int digits, char u1, char u2 = ' ') {
-  char lcdBuf[12];
-  dtostrf(value, length, digits, lcdBuf);
-  lcd.print(lcdBuf);
-  lcd.print(' ');
-  lcd.print(u1);
-  if (u2 != ' ')
-    lcd.print(u2);
+void printValue(int x, int y, float value, int digits) {
+  int16_t x1, y1;
+  uint16_t w, h;
+  dtostrf(value, 0, digits, lcdBuf);
+  lcd.getTextBounds(lcdBuf, 0, CANVAS_Y - 3, &x1, &y1, &w, &h); // text buffer, position, top left corner, width & height
+  canvas1.fillScreen(0);
+  canvas1.setCursor(CANVAS_X1 - w - 5, CANVAS_Y - 3);
+  canvas1.print(lcdBuf);
+  lcd.drawBitmap(x, y + 2, canvas1.getBuffer(), CANVAS_X1, CANVAS_Y, TEXTCOLOR, BACKGROUND);
 }
 
 void display() {
   ledcWrite(LED_CHANNEL, lcdBackLight);
   
-  lcd.setCursor(30, 22);
-  myRTC.read(tm);
-  printDigits(tm.Hour, ':');
-  printDigits(tm.Minute, ':');
-  printDigits(tm.Second);
+  printDigits(hour(), 0);
+  printDigits(minute(), 3);
+  printDigits(second(), 6);
+  canvas2.fillScreen(0);
+  canvas2.setCursor(0, CANVAS_Y - 3);
+  canvas2.print(lcdBuf);
+  lcd.drawBitmap(113, 4, canvas2.getBuffer(), CANVAS_X2, CANVAS_Y, TEXTCOLOR, BACKGROUND);
   
   if (!(isnan(humInt) || isnan(tempInt))) {
-    lcd.setCursor(30, 52);
-    printValue(tempInt, 5, 1, char(247), 'C');
-    lcd.setCursor(30, 82);
-    printValue(humInt, 5, 1, '%');
+    printValue(GRID_X1 + 25, GRID_Y2, tempInt, 1);
+    printValue(GRID_X2 + 25, GRID_Y2, humInt, 1);
   }
 
-  if (!(illumination < 0)) {
-    lcd.setCursor(30, 112);
-    printValue(illumination, 5, 0, 'l', 'x');
+  if (!(illum < 0)) {
+    int16_t x1, y1;
+    uint16_t w, h;
+    dtostrf(illum, 0, 1, lcdBuf);
+    lcd.getTextBounds(lcdBuf, 0, CANVAS_Y - 3, &x1, &y1, &w, &h); // text buffer, position, top left corner, width & height
+    canvas2.fillScreen(0);
+    canvas2.setCursor(CANVAS_X2 - w - 5, CANVAS_Y - 3);
+    canvas2.print(lcdBuf);
+    lcd.drawBitmap(GRID_X1 + 25, GRID_Y3 + 2, canvas2.getBuffer(), CANVAS_X2, CANVAS_Y, TEXTCOLOR, BACKGROUND);
   }
 
   if (!(isnan(humExt) || isnan(tempExt))) {
-    lcd.setCursor(30, 142);
-    printValue(tempExt, 5, 1, char(247), 'C');
-    lcd.setCursor(30, 172);
-    printValue(humExt, 5, 1, '%');
+    printValue(GRID_X1 + 25, GRID_Y5, tempExt, 1);
+    printValue(GRID_X2 + 25, GRID_Y5, humExt, 1);
   }
 
   if (tempCeiling != DEVICE_DISCONNECTED_C) {
-    lcd.setCursor(30, 202);
-    printValue(tempCeiling, 5, 1, char(247), 'C');
+    printValue(GRID_X1 + 25, GRID_Y7, tempCeiling, 1);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
 
   if (tempFloor != DEVICE_DISCONNECTED_C) {
-    lcd.setCursor(30, 232);
-    printValue(tempFloor, 5, 1, char(247), 'C');
+    printValue(GRID_X2 + 25, GRID_Y7, tempFloor, 1);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
-  /*
-  lcd.setCursor(0, 242);
-  lcd.print("Vytapeni");
-  lcd.setCursor(0, 272);
-  lcd.print("   ");
-  lcd.setCursor(0, 272);
-  lcd.print(lcdBackLight);//"Cirkulace");
-  */
 }

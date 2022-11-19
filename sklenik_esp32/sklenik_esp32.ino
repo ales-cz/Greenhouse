@@ -1,47 +1,66 @@
-#include <esp_task_wdt.h>       // WatchDog
-#include <SPI.h>                // SPI bus
-#include <SPIFFS.h>             // SPI Flash File Storage
-#include <Wire.h>               // IIC bus
-#include <SimpleDHT.h>          // Sensor DHT22 (temperature & humidity)
-#include <DallasTemperature.h>  // Sensor DS18B20 (temperature)
-#include <BH1750.h>             // Sensor BH1750 (illuminance)
-#include <DS3232RTC.h>          // RTC DS3231 (real time clock)
-#include <Adafruit_ILI9341.h>   // LCD display
-#include <Adafruit_GFX.h>       // LCD display
-#include <SPIFFS_ImageReader.h> // Load images from SPIFFS partition for Adafruit_GFX
+#include <esp_task_wdt.h>        // WatchDog
+#include <SPI.h>                 // SPI bus
+#include <SPIFFS.h>              // SPI Flash File Storage
+#include <Wire.h>                // IIC bus
+#include <SimpleDHT.h>           // Sensor DHT22 (temperature & humidity)
+#include <DallasTemperature.h>   // Sensor DS18B20 (temperature)
+#include <BH1750.h>              // Sensor BH1750 (illuminance)
+#include <DS3232RTC.h>           // RTC DS3231 (real time clock)
+#include <Adafruit_ILI9341.h>    // LCD display
+#include <Adafruit_GFX.h>        // LCD display
+#include <SPIFFS_ImageReader.h>  // Load images from SPIFFS partition for Adafruit_GFX
 #include <Fonts/FreeSans12pt7b.h>
-#include <Ethernet.h>           // Ethernet W5500
-#include <ThingSpeak.h>         // ThingSpeak
+#include <Ethernet.h>    // Ethernet W5500
+#include <ThingSpeak.h>  // ThingSpeak
 
 // nastavení PINů
-#define VSPI_SS   5   // Display CS
-#define HSPI_SS   15  // Ethernet CS
-#define TFT_BL    25  // Display backlight
-#define TFT_DC    26  // Display DC
-#define TFT_RST   27  // Display RST
-#define DHT       32  // DHT22
-#define OW        33  // OneWire bus (DS18B20)
+#define VSPI_SS 5   // Display CS
+#define HSPI_SS 15  // Ethernet CS
+#define HEAT 16     // Heater output
+#define CIRCUL 17   // Circulation output
+#define TFT_BL 25   // Display backlight
+#define TFT_DC 26   // Display DC
+#define TFT_RST 27  // Display RST
+#define DHT 32      // DHT22
+#define OW 33       // OneWire bus (DS18B20)
 
 // ostatní konstanty
-#define WDT_TIMEOUT       4       // watchdog timeout [s]
-#define DALLAS_RESOLUTION 11      // resolution of DS18B20 sensors (11 = 0,125 °C)
-#define DELAY1            10      // ????
-#define DELAY2            1000    // display
-#define DELAY3            2500    // sensorsRead
-#define DELAY4            20000   // cloudUpdate
-#define BACKGROUND        0xFFFF  // white 
-#define TEXTSIZE          1
-#define TEXTCOLOR         0x0000  // black
-#define LED_FREQ          10000   // display backlight PWM
-#define LED_CHANNEL       0       // display backlight PWM
-#define LED_RESOLUTION    8       // display backlight PWM
+#define WDT_TIMEOUT 4         // watchdog timeout [s]
+#define DALLAS_RESOLUTION 11  // resolution of DS18B20 sensors (11 = 0,125 °C)
+#define DELAY1 10             // ????
+#define DELAY2 1000           // display
+#define DELAY3 2500           // sensorsRead
+#define DELAY4 20000          // cloudUpdate
+#define BACKGROUND 0xFFFF     // white
+#define TEXTSIZE 1
+#define TEXTCOLOR 0x0000  // black
+#define LED_FREQ 10000    // display backlight PWM
+#define LED_CHANNEL 0     // display backlight PWM
+#define LED_RESOLUTION 8  // display backlight PWM
+#define CANVAS_X1 65      // temperature & humidity
+#define CANVAS_X2 95      // clock & illumination
+#define CANVAS_Y 20
+#define GRID_X1 5         //position of display grid
+#define GRID_X2 140
+#define GRID_Y1 27
+#define GRID_Y2 57
+#define GRID_Y3 87
+#define GRID_Y4 117
+#define GRID_Y5 147
+#define GRID_Y6 177
+#define GRID_Y7 207
+#define STAT_X 269        //position of status icons
+#define STAT_Y1 5
+#define STAT_Y2 65
+#define STAT_Y3 125
+#define STAT_Y4 185
 
 // SPI bus init
-SPIClass  vspi(VSPI);
-SPIClass  hspi(HSPI);
+SPIClass vspi(VSPI);
+SPIClass hspi(HSPI);
 
 // Display init
-Adafruit_ILI9341 lcd=Adafruit_ILI9341(&hspi, TFT_DC, HSPI_SS, TFT_RST);
+Adafruit_ILI9341 lcd = Adafruit_ILI9341(&hspi, TFT_DC, HSPI_SS, TFT_RST);
 SPIFFS_ImageReader reader;
 
 // DHT22 init
@@ -70,11 +89,14 @@ const char* myWriteAPIKey = "99A0T3QXV0LMP6MA";
 
 // Variables
 unsigned long timer1 = 0, timer2 = 0, timer3 = 0, timer4 = 0;           // Task timers
-float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illumination;    // Measured values
-float setHeatingTemp, setCirculationDiff, heatingHyst, circulationHyst; // Actuators settings
-bool heatingActive, circulationActive;                                  // Actuators status
+float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum;  // Measured values
+float reqHeatTemp = 25, reqCirculDiff, heatHyst = 1, circulHyst;        // Actuators settings
+bool thermostat = 1, circulation, heatOut, circulOut;                   // Actuators status
 tmElements_t tm;
-byte lcdBackLight = 100; // lcd backlight
+byte lcdBackLight = 100;  // lcd backlight
+char lcdBuf[8];
+GFXcanvas1 canvas1(CANVAS_X1, CANVAS_Y);
+GFXcanvas1 canvas2(CANVAS_X2, CANVAS_Y);
 
 void setup() {
   Serial.begin(115200);  // Serial monitor (debug)
@@ -83,6 +105,9 @@ void setup() {
   hspi.begin();
   pinMode(VSPI_SS, OUTPUT);
   pinMode(HSPI_SS, OUTPUT);
+
+  pinMode(HEAT, OUTPUT);
+  pinMode(CIRCUL, OUTPUT);
 
   Wire.begin();
   if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
@@ -105,7 +130,7 @@ void setup() {
     Serial.print("DHCP assigned IP: ");
     Serial.println(Ethernet.localIP());
   }
-  delay(1000); // Give the Ethernet module a second to initialize
+  delay(1000);  // Give the Ethernet module a second to initialize
 
   ds18b20.begin();
   ds18b20.setResolution(ds18b20Floor, DALLAS_RESOLUTION);
@@ -116,49 +141,41 @@ void setup() {
   timer3 = millis();
 
   // initialize SPIFFS
-  if(!SPIFFS.begin()) {
+  if (!SPIFFS.begin()) {
     Serial.println("SPIFFS initialisation failed!");
-    while (1);
+    while (1)
+      ;
   }
 
   lcd.begin();
-  lcd.setRotation(1);
-  lcd.fillScreen(BACKGROUND);
-  lcd.setTextSize(TEXTSIZE);
-  lcd.setTextColor(TEXTCOLOR, BACKGROUND); // todo vyhodit background
-  lcd.setFont(&FreeSans12pt7b);
-  reader.drawBMP("/thermometer.bmp", lcd, 5, 27);
-  reader.drawBMP("/droplet.bmp", lcd, 5, 57);
-  reader.drawBMP("/sun.bmp", lcd, 5, 87);
-  reader.drawBMP("/thermometer.bmp", lcd, 5, 117);
-  reader.drawBMP("/droplet.bmp", lcd, 5, 147);
-  reader.drawBMP("/thermometer.bmp", lcd, 5, 177);
-  reader.drawBMP("/thermometer.bmp", lcd, 5, 207);
-  reader.drawBMP("/heating.bmp", lcd, 270, 2);
-  reader.drawBMP("/fan.bmp", lcd, 270, 55);
-  reader.drawBMP("/ethernet.bmp", lcd, 270, 105);
-  reader.drawBMP("/cloud.bmp", lcd, 270, 155);
+  displayInit();
 
   myRTC.begin();
+  setSyncProvider(myRTC.get);
+  if (timeStatus() != timeSet)
+    Serial.println("Unable to sync with the RTC");
+  else
+    Serial.println("RTC has set the system time");
+
   if (myRTC.oscStopped(false)) {  // check the oscillator
-    //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    //rtc.adjust(DateTime(2014, 1, 21, 3, 3, 3));
+    //myRTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    //myRTC.adjust(DateTime(2014, 1, 21, 3, 3, 3));
     //Serial.println("Time adjusted.");
   }
   //rtc.disable32K(); // we don't need the 32K Pin, so disable it
-  myRTC.squareWave(DS3232RTC::SQWAVE_NONE); // stop oscillating signals at SQW Pin
-  
-  ThingSpeak.begin(client); // initialize ThingSpeak
+  myRTC.squareWave(DS3232RTC::SQWAVE_NONE);  // stop oscillating signals at SQW Pin
+
+  ThingSpeak.begin(client);  // initialize ThingSpeak
 
   // configure display backlight PWM
   ledcSetup(LED_CHANNEL, LED_FREQ, LED_RESOLUTION);
   ledcAttachPin(TFT_BL, LED_CHANNEL);
 
-  
-  delay(2000); // delay to complete all initial tasks before enable WDT
 
-  esp_task_wdt_init(WDT_TIMEOUT, true); // enable panic so ESP32 restarts
-  esp_task_wdt_add(NULL); // add current thread to WDT watch
+  delay(2000);  // delay to complete all initial tasks before enable WDT
+
+  esp_task_wdt_init(WDT_TIMEOUT, true);  // enable panic so ESP32 restarts
+  esp_task_wdt_add(NULL);                // add current thread to WDT watch
 }
 
 void loop() {
@@ -168,7 +185,8 @@ void loop() {
   }
   if (millis() - timer3 >= DELAY3) {
     timer3 = millis();
-    sensorsRead();
+    sensors();
+    actuators();
   }
   if (millis() - timer4 >= DELAY4) {
     timer4 = millis();
