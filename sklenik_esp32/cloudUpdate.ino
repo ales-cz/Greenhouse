@@ -1,5 +1,5 @@
 void cloudUpdate() {
-  String status = "";
+  int status;
 
   ThingSpeak.setField(1, tempInt);
   ThingSpeak.setField(2, humInt);
@@ -9,17 +9,23 @@ void cloudUpdate() {
   ThingSpeak.setField(6, tempCeiling);
   ThingSpeak.setField(7, illum);
   if (heatOut && circulOut)
-    status = "Je aktivní vytápění i cirkulace.";
+    ThingSpeak.setStatus("Je aktivní vytápění i cirkulace.");
   else if (heatOut)
-    status = "Je aktivní vytápění.";
+    ThingSpeak.setStatus("Je aktivní vytápění.");
   else if (circulOut)
-    status = "Je aktivní cirkulace.";
-  ThingSpeak.setStatus(status);
-  int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-  if(x == 200){
+    ThingSpeak.setStatus("Je aktivní cirkulace.");
+  status = ThingSpeak.writeFields(channelNumber, writeAPIKey);
+  if (status == 200) {
     Serial.println("Channel update successful.");
+  } else {
+    Serial.print("Problem updating channel. HTTP error code: ");
+    Serial.println(status);
   }
-  else{
-    Serial.println("Problem updating channel. HTTP error code " + String(x));
+  if (status != cloudLastUpdateStatus) {
+    if (status == 200) {
+      reader.drawBMP("/cloud.bmp", lcd, STAT_X, STAT_Y4);
+    } else {
+      reader.drawBMP("/ycloud.bmp", lcd, STAT_X, STAT_Y4);
+    }
   }
 }

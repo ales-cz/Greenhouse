@@ -10,6 +10,7 @@ void printDigits(int digits, int i) {
 void printValue(int x, int y, float value, int digits) {
   int16_t x1, y1;
   uint16_t w, h;
+
   dtostrf(value, 0, digits, lcdBuf);
   lcd.getTextBounds(lcdBuf, 0, CANVAS_Y - 3, &x1, &y1, &w, &h); // text buffer, position, top left corner, width & height
   canvas1.fillScreen(0);
@@ -19,6 +20,9 @@ void printValue(int x, int y, float value, int digits) {
 }
 
 void display() {
+  int16_t x1, y1;
+  uint16_t w, h;
+
   ledcWrite(LED_CHANNEL, lcdBackLight);
   
   printDigits(hour(), 0);
@@ -35,8 +39,6 @@ void display() {
   }
 
   if (!(illum < 0)) {
-    int16_t x1, y1;
-    uint16_t w, h;
     dtostrf(illum, 0, 1, lcdBuf);
     lcd.getTextBounds(lcdBuf, 0, CANVAS_Y - 3, &x1, &y1, &w, &h); // text buffer, position, top left corner, width & height
     canvas2.fillScreen(0);

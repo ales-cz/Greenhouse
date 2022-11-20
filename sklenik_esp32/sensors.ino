@@ -1,4 +1,6 @@
 void sensors() {
+  int err = SimpleDHTErrSuccess;
+  
   tempFloor = ds18b20.getTempC(ds18b20Floor);
   tempCeiling = ds18b20.getTempC(ds18b20Ceiling);
   ds18b20.requestTemperatures();
