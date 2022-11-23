@@ -8,13 +8,12 @@
 #include <SPIFFS_ImageReader.h> // Load images from SPIFFS partition for Adafruit_GFX
 
 #define BACKGROUND 0xFFFF // white
-#define TEXTSIZE 1
-#define TEXTCOLOR 0x0000 // black
-#define LED_FREQ 10000   // display backlight PWM
-#define LED_CHANNEL 0    // display backlight PWM
-#define LED_RESOLUTION 8 // display backlight PWM
-#define CANVAS_X1 65     // temperature & humidity
-#define CANVAS_X2 95     // clock & illumination
+#define TEXTCOLOR 0x0000  // black
+#define LED_FREQ 10000    // display backlight PWM
+#define LED_CHANNEL 0     // display backlight PWM
+#define LED_RESOLUTION 8  // display backlight PWM
+#define CANVAS_X1 65      // temperature & humidity
+#define CANVAS_X2 95      // clock & illumination
 #define CANVAS_Y 20
 #define GRID_X1 5 // position of display grid
 #define GRID_X2 140
@@ -30,6 +29,7 @@
 #define STAT_Y2 65
 #define STAT_Y3 125
 #define STAT_Y4 185
+#define LCD_BUF_LEN 8
 
 class Display
 {
@@ -40,7 +40,7 @@ private:
   GFXcanvas1 canvas2;
   SPIFFS_ImageReader imgReader;
   byte lcdBackLight = 100; // LCD backlight
-  char lcdBuf[8];
+  char lcdBuf[LCD_BUF_LEN];
   void printDigits(int digits, int i);
   void printValue(int x, int y, float value, int digits);
 
@@ -48,7 +48,8 @@ public:
   Display(SPIClass *spiClass, int8_t tftDC, int8_t hspiSS, int8_t tftRST, byte tftBL);
   void begin();
   void init();
-  void draw(byte hour, byte minute, byte second, byte humInt, byte tempInt, byte illum, byte humExt, byte tempExt, byte tempCeiling, byte tempFloor);
+  void draw(byte hour, byte minute, byte second, float tempInt, float tempExt,
+            float tempFloor, float tempCeiling, float humInt, float humExt, float illum);
   void drawHeat(bool active);
   void drawCircul(bool active);
   void drawLAN(bool fault);

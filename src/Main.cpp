@@ -1,32 +1,7 @@
-#include <esp_task_wdt.h> // WatchDog
-#include <Preferences.h>  // For storing key-value pairs
-#include <DS3232RTC.h>    // RTC DS3231 (real time clock)
-#include "Display.h"
-#include "Sensors.h"
-#include "Actuators.h"
-#include "Cloud.h"
-#include <Ethernet.h>   // Ethernet W5500
-
-// nastavení PINů
-#define VSPI_SS 5  // Display CS
-#define HSPI_SS 15 // Ethernet CS
-#define HEAT 16    // Heater output
-#define CIRCUL 17  // Circulation output
-#define TFT_BL 25  // Display backlight
-#define TFT_DC 26  // Display DC
-#define TFT_RST 27 // Display RST
-#define DHT22_1 32 // DHT22
-#define OW 33      // OneWire bus (DS18B20)
-
-// ostatní konstanty
-#define WDT_TIMEOUT 4 // watchdog timeout [s]
-#define DELAY1 10     // ????
-#define DELAY2 1000   // display
-#define DELAY3 2500   // sensorsRead
-#define DELAY4 20000  // cloudUpdate
+#include "Settings.h"
 
 // Preferences init
-Preferences preferences;
+Preferences prefs;
 
 // SPI bus init
 SPIClass vspi(VSPI);
@@ -36,58 +11,50 @@ SPIClass hspi(HSPI);
 DS3232RTC myRTC;
 
 // Ethernet init
-EthernetClient client;
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
 // Variables
-unsigned long timer1 = 0, timer2 = 0, timer3 = 0, timer4 = 0;          // Task timers
 float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum; // Measured values
+bool lastHeating = 0, lastCirculating = 0;
+byte cloudUpdateStatus, cloudLastUpdateStatus = 200;
 bool dhcp;
 
 Display display(&hspi, TFT_DC, HSPI_SS, TFT_RST, TFT_BL);
 Sensors sensors(DHT22_1, OW);
-Actuators actuators(HEAT, CIRCUL);
-Cloud cloud;
+Actuators actuators(HEAT, CIRCUL, &prefs);
+Cloud cloud(&prefs);
 
 void setup()
 {
   Serial.begin(115200); // Serial monitor (debug)
 
   // Preferences: RW-mode (second parameter has to be false).
-  preferences.begin("greenhouse", false);
+  //prefs.begin("greenhouse", false);
   // Remove all preferences under the opened namespace
-  // preferences.clear();
-  // if (!preferences.isKey("writeAPIKey")) { // Create if not exist
-  //  preferences.putString("writeAPIKey", "99A0T3QXV0LMP6MA");
+  // prefs.clear();
+  // if (!prefs.isKey("writeAPIKey")) { // Create if not exist
+  //  prefs.putString("writeAPIKey", "99A0T3QXV0LMP6MA");
   //}
   // Close the Preferences
-  // preferences.end();
+  // prefs.end();
   // Restart ESP
   // ESP.restart();
 
-  // Actuators settings
-  /*thermostat = preferences.getBool("thermostat", 1);
-  circulation = preferences.getBool("circulation", 1);
-  reqHeatTemp = preferences.getFloat("reqHeatTemp", 24);
-  reqCirculDiff = preferences.getFloat("reqCirculDiff", 2);
-  heatHyst = preferences.getFloat("heatHyst", 1);
-  circulHyst = preferences.getFloat("circulHyst", 1);
-*/
   // IP configuration
-  dhcp = preferences.getBool("dhcp", 1);
+  dhcp = prefs.getBool("dhcp", 1);
   IPAddress ip(
-      preferences.getUChar("ip1", 192),
-      preferences.getUChar("ip2", 168),
-      preferences.getUChar("ip3", 2),
-      preferences.getUChar("ip4", 177));
+      prefs.getUChar("ip1", 192),
+      prefs.getUChar("ip2", 168),
+      prefs.getUChar("ip3", 2),
+      prefs.getUChar("ip4", 177));
   IPAddress dns(
-      preferences.getUChar("dns1", 192),
-      preferences.getUChar("dns2", 168),
-      preferences.getUChar("dns3", 2),
-      preferences.getUChar("dns4", 1));
+      prefs.getUChar("dns1", 192),
+      prefs.getUChar("dns2", 168),
+      prefs.getUChar("dns3", 2),
+      prefs.getUChar("dns4", 1));
 
-    // Close the Preferences
-  preferences.end();
+  // Close the Preferences
+  //prefs.end();
 
   vspi.begin();
   hspi.begin();
@@ -129,8 +96,6 @@ void setup()
   }
   delay(1000); // Give the Ethernet module a second to initialize
 
-  timer3 = millis();
-
   myRTC.begin();
   setSyncProvider(myRTC.get);
   if (timeStatus() != timeSet)
@@ -155,21 +120,32 @@ void setup()
 
 void loop()
 {
-  if (millis() - timer2 >= DELAY2)
+  if (sensors.read(&tempInt, &tempExt, &tempFloor, &tempCeiling, &humInt, &humExt, &illum))
   {
-    timer2 = millis();
-    display.draw(hour(), minute(), second(), humInt, tempInt, illum, humExt, tempExt, tempCeiling, tempFloor);
-  }
-  if (millis() - timer3 >= DELAY3)
-  {
-    timer3 = millis();
-    sensors.read();
+    display.draw(hour(), minute(), second(), tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum);
     actuators.set(tempInt, tempFloor, tempCeiling);
+    if (cloud.update(&cloudUpdateStatus, tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum,
+                     actuators.isHeating(), actuators.isCirulating()))
+    {
+      if (cloudUpdateStatus != cloudLastUpdateStatus)
+      {
+        if (cloudUpdateStatus == 200)
+          display.drawCloud(0);
+        else
+          display.drawCloud(1);
+      }
+    }
+    if (lastHeating != actuators.isHeating())
+    {
+      lastHeating = actuators.isHeating();
+      display.drawHeat(actuators.isHeating());
+    }
+    if (lastCirculating != actuators.isCirulating())
+    {
+      lastCirculating = actuators.isCirulating();
+      display.drawCircul(actuators.isCirulating());
+    }
   }
-  if (millis() - timer4 >= DELAY4)
-  {
-    timer4 = millis();
-    cloud.update();
-  }
+
   esp_task_wdt_reset();
 }

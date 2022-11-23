@@ -1,7 +1,10 @@
 #ifndef MY_CLOUD_H
 #define MY_CLOUD_H
 #include <Arduino.h>
-#include <ThingSpeak.h> // ThingSpeak
+#include <ThingSpeak.h>
+#include <Ethernet.h>
+
+#define DELAY_UPDATE 20000 // cloudUpdate
 
 class Cloud
 {
@@ -9,12 +12,12 @@ class Cloud
 private:
     unsigned long channelNumber;
     char writeAPIKey[17] = "99A0T3QXV0LMP6MA";
-    int cloudLastUpdateStatus = 200;
+    EthernetClient client;
+    u_long lastUpdate;
 
 public:
-    Cloud();
-    // void begin();
-    void update();
-    // void init();
+    Cloud(Preferences *prefs);
+    byte update(byte *status, float tempInt, float tempExt, float tempFloor, float tempCeiling,
+                float humInt, float humExt, float illum, bool heating, bool circulating);
 };
 #endif

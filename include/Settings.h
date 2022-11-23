@@ -22,9 +22,5 @@
 
 // ostatní konstanty
 #define WDT_TIMEOUT 4 // watchdog timeout [s]
-#define DELAY1 10     // ????
-#define DELAY2 1000   // display
-#define DELAY3 2500   // sensorsRead
-#define DELAY4 20000  // cloudUpdate
 
 #endif

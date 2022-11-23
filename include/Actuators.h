@@ -13,9 +13,15 @@ private:
     void setCircul(bool active);
 
 public:
-    Actuators(int8_t pHeat, int8_t pCircul);
+    Actuators(int8_t pHeat, int8_t pCircul, Preferences* prefs);
     void set(float tempInt, float tempFloor, float tempCeiling);
-    void isHeating();
-    void isCirulating();
+    void setThermostat(bool state);
+    void setCirculation(bool state);
+    void setReqHeatTemp(float temp);
+    void setReqCirculDiff(float diff);
+    void setHeatHyst(float hyst);
+    void setCirculHyst(float hyst);
+    bool isHeating();
+    bool isCirulating();
 };
 #endif
