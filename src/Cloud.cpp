@@ -1,13 +1,15 @@
 #include "Settings.h"
 #include "Cloud.h"
 
-Cloud::Cloud(Preferences *prefs)
+Cloud::Cloud()
 {
-  prefs->begin("greenhouse", true);
+}
+
+void Cloud::begin(Preferences *prefs)
+{
   channelNumber = prefs->getULong("channelNumber", 1903776);
   prefs->getString("writeAPIKey", writeAPIKey, sizeof(writeAPIKey));
-  prefs->end();
-  ThingSpeak.begin(client); // initialize ThingSpeak
+  ThingSpeak.begin(client);
 }
 
 byte Cloud::update(byte *status, float tempInt, float tempExt, float tempFloor, float tempCeiling,
@@ -15,8 +17,6 @@ byte Cloud::update(byte *status, float tempInt, float tempExt, float tempFloor, 
 {
   if (millis() - lastUpdate < DELAY_UPDATE)
     return false;
-
-  lastUpdate = millis();
 
   ThingSpeak.setField(1, tempInt);
   ThingSpeak.setField(2, humInt);
@@ -40,5 +40,7 @@ byte Cloud::update(byte *status, float tempInt, float tempExt, float tempFloor, 
   {
     log_e("Problem updating channel. HTTP error code: %d", *status);
   }
+
+  lastUpdate = millis();
   return true;
 }

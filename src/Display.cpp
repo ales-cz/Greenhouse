@@ -26,8 +26,8 @@ void Display::printValue(int x, int y, float value, int digits)
   tft.drawBitmap(x, y + 2, canvas1.getBuffer(), CANVAS_X1, CANVAS_Y, TEXTCOLOR, BACKGROUND);
 }
 
-Display::Display(SPIClass *spiClass, int8_t tftDC, int8_t hspiSS, int8_t tftRST, byte tftBL)
-    : tft(spiClass, tftDC, hspiSS, tftRST), canvas1(CANVAS_X1, CANVAS_Y), canvas2(CANVAS_X2, CANVAS_Y)
+Display::Display(int8_t tftDC, int8_t hspiSS, int8_t tftRST, byte tftBL)
+    : spiBus(HSPI), tft(&spiBus, tftDC, hspiSS, tftRST), canvas1(CANVAS_X1, CANVAS_Y), canvas2(CANVAS_X2, CANVAS_Y)
 {
   // configure display backlight PWM
   ledcSetup(LED_CHANNEL, LED_FREQ, LED_RESOLUTION);
@@ -36,6 +36,8 @@ Display::Display(SPIClass *spiClass, int8_t tftDC, int8_t hspiSS, int8_t tftRST,
 
 void Display::begin()
 {
+  spiBus.begin(); // Display
+  pinMode(HSPI_SS, OUTPUT);
   tft.begin();
   // initialize SPIFFS
   if (!SPIFFS.begin())
@@ -106,8 +108,19 @@ void Display::init()
   imgReader.drawBMP((char *)"/cloud.bmp", tft, STAT_X, STAT_Y4);
 }
 
-void Display::draw(byte hour, byte minute, byte second, float tempInt, float tempExt,
-                   float tempFloor, float tempCeiling, float humInt, float humExt, float illum)
+void Display::drawClock()
+{
+  printDigits(hour(), 0);
+  printDigits(minute(), 3);
+  printDigits(second(), 6);
+  canvas2.fillScreen(0);
+  canvas2.setCursor(0, CANVAS_Y - 3);
+  canvas2.print(lcdBuf);
+  tft.drawBitmap(113, 4, canvas2.getBuffer(), CANVAS_X2, CANVAS_Y, TEXTCOLOR, BACKGROUND);
+}
+
+void Display::drawMeasured(float tempInt, float tempExt, float tempFloor, float tempCeiling,
+                           float humInt, float humExt, float illum)
 {
   int16_t x1, y1;
   uint16_t w, h;
@@ -135,15 +148,6 @@ void Display::draw(byte hour, byte minute, byte second, float tempInt, float tem
     lcdBackLight = 255;
 
   ledcWrite(LED_CHANNEL, lcdBackLight);
-
-  // Clock
-  printDigits(hour, 0);
-  printDigits(minute, 3);
-  printDigits(second, 6);
-  canvas2.fillScreen(0);
-  canvas2.setCursor(0, CANVAS_Y - 3);
-  canvas2.print(lcdBuf);
-  tft.drawBitmap(113, 4, canvas2.getBuffer(), CANVAS_X2, CANVAS_Y, TEXTCOLOR, BACKGROUND);
 
   // Greenhouse internal temperature & humidity
   printValue(GRID_X1 + 25, GRID_Y2, tempInt, 1);

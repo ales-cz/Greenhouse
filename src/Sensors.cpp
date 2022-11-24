@@ -1,18 +1,21 @@
 #include "Settings.h"
 #include "Sensors.h"
 
-Sensors::Sensors(int8_t pDHT22_1, int8_t pOW)
-    : owBus(pOW), ds18b20(&owBus), dht22_1(pDHT22_1)
+Sensors::Sensors(int8_t pDHT22Int, int8_t pDHT22Ext, int8_t pOW)
+    : dht22Int(pDHT22Int, DHTTYPE), dht22Ext(pDHT22Ext, DHTTYPE), owBus(pOW), ds18b20(&owBus)
 {
 }
 
 void Sensors::begin()
 {
+  dht22Int.begin();
+  dht22Ext.begin();
+  lastRequest = millis();
+
   ds18b20.begin();
   ds18b20.setResolution(ds18b20Floor, DALLAS_RESOLUTION);
   ds18b20.setResolution(ds18b20Ceiling, DALLAS_RESOLUTION);
   ds18b20.setWaitForConversion(false);
-  lastRequest = millis();
   ds18b20.requestTemperatures();
 
   Wire.begin();
@@ -26,22 +29,19 @@ bool Sensors::read(float *tempInt, float *tempExt, float *tempFloor, float *temp
   if (millis() - lastRequest < DELAY_REQUEST)
     return false;
 
+  *tempInt = dht22Int.readTemperature();
+  *humInt = dht22Int.readHumidity();
+
+  *tempExt = dht22Ext.readTemperature();
+  *humExt = dht22Ext.readHumidity();
+
   lastRequest = millis();
 
-  int err = SimpleDHTErrSuccess;
-  if ((err = dht22_1.read2(tempInt, humInt, NULL)) != SimpleDHTErrSuccess)
-  {
-    log_e("Error reading temperature & humidity sensor DHT22, err: %d,%d",
-          SimpleDHTErrCode(err), SimpleDHTErrDuration(err));
-    *tempInt = std::numeric_limits<float>::quiet_NaN();
-    *humInt = std::numeric_limits<float>::quiet_NaN();
-  }
-
   *tempFloor = ds18b20.getTempC(ds18b20Floor);
-  if (*tempFloor = -127)
+  if (*tempFloor == -127)
     *tempFloor = std::numeric_limits<float>::quiet_NaN();
   *tempCeiling = ds18b20.getTempC(ds18b20Ceiling);
-  if (*tempCeiling = -127)
+  if (*tempCeiling == -127)
     *tempCeiling = std::numeric_limits<float>::quiet_NaN();
 
   ds18b20.requestTemperatures();
@@ -56,19 +56,19 @@ bool Sensors::read(float *tempInt, float *tempExt, float *tempFloor, float *temp
   {
     // very low light environment
     if (!lightMeter.setMTreg(138))
-      log_i("Error setting illumination sensor BH1750 MTReg to high value (low light environment)");
+      log_e("Error setting illumination sensor BH1750 (MTReg = 138)");
   }
   else if (*illum > 11.0 && *illum < 39000.0)
   {
     // typical light environment
     if (!lightMeter.setMTreg(69))
-      log_i("Error setting illumination sensor BH1750 MTReg to default value (normal light environment)");
+      log_e("Error setting illumination sensor BH1750 (MTReg = 69)");
   }
   else if (*illum >= 40000.0)
   {
     // Reduce measurement time - needed in direct sun light
     if (!lightMeter.setMTreg(32))
-      log_i("Error setting illumination sensor BH1750 MTReg to low value (high light environment)");
+      log_e("Error setting illumination sensor BH1750 (MTReg = 32)");
   }
 
   return true;

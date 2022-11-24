@@ -7,13 +7,14 @@ class Actuators
 
 private:
     int8_t pHeat, pCircul;
-    bool thermostat, circulation, heating, circulating; 
+    bool thermostat, circulation, heating, circulating;
     float reqHeatTemp, reqCirculDiff, heatHyst, circulHyst; // Actuators settings
     void setHeat(bool active);
     void setCircul(bool active);
 
 public:
-    Actuators(int8_t pHeat, int8_t pCircul, Preferences* prefs);
+    Actuators(int8_t pHeat, int8_t pCircul);
+    void begin(Preferences *prefs);
     void set(float tempInt, float tempFloor, float tempCeiling);
     void setThermostat(bool state);
     void setCirculation(bool state);

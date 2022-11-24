@@ -13,22 +13,22 @@ void Actuators::setCircul(bool active)
   circulating = active;
 }
 
-Actuators::Actuators(int8_t pHeat, int8_t pCircul, Preferences* prefs)
+Actuators::Actuators(int8_t pHeat, int8_t pCircul)
 {
   this->pHeat = pHeat;
   this->pCircul = pCircul;
   pinMode(pHeat, OUTPUT);
   pinMode(pCircul, OUTPUT);
-  
-  // Actuators settings
-  prefs->begin("greenhouse", true);
+}
+
+void Actuators::begin(Preferences *prefs)
+{
   setThermostat(prefs->getBool("thermostat", 1));
   setCirculation(prefs->getBool("circulation", 1));
   setReqHeatTemp(prefs->getFloat("reqHeatTemp", 24));
   setReqCirculDiff(prefs->getFloat("reqCirculDiff", 2));
   setHeatHyst(prefs->getFloat("heatHyst", 1));
   setCirculHyst(prefs->getFloat("circulHyst", 1));
-  prefs->end();
 }
 
 // Pokud je hystereze 1°C, požadovaná teplota 5°C, termostat vypne při 6°C a znovu sepne při 4°C

@@ -35,6 +35,7 @@ class Display
 {
 
 private:
+  SPIClass spiBus;
   Adafruit_ILI9341 tft;
   GFXcanvas1 canvas1;
   GFXcanvas1 canvas2;
@@ -45,11 +46,12 @@ private:
   void printValue(int x, int y, float value, int digits);
 
 public:
-  Display(SPIClass *spiClass, int8_t tftDC, int8_t hspiSS, int8_t tftRST, byte tftBL);
+  Display(int8_t tftDC, int8_t hspiSS, int8_t tftRST, byte tftBL);
   void begin();
   void init();
-  void draw(byte hour, byte minute, byte second, float tempInt, float tempExt,
-            float tempFloor, float tempCeiling, float humInt, float humExt, float illum);
+  void drawClock();
+  void drawMeasured(float tempInt, float tempExt, float tempFloor, float tempCeiling,
+                    float humInt, float humExt, float illum);
   void drawHeat(bool active);
   void drawCircul(bool active);
   void drawLAN(bool fault);
