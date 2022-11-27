@@ -102,21 +102,28 @@ void Display::init()
   tft.setCursor(GRID_X2 + 103, GRID_Y7 + CANVAS_Y);
   tft.print('C');
 
-  imgReader.drawBMP((char *)"/heat.bmp", tft, STAT_X, STAT_Y1);
-  imgReader.drawBMP((char *)"/circul.bmp", tft, STAT_X, STAT_Y2);
-  imgReader.drawBMP((char *)"/lan.bmp", tft, STAT_X, STAT_Y3);
-  imgReader.drawBMP((char *)"/cloud.bmp", tft, STAT_X, STAT_Y4);
+  drawLAN(false);
+  drawCloud(false);
 }
 
-void Display::drawClock()
+bool Display::drawClock()
 {
-  printDigits(hour(), 0);
-  printDigits(minute(), 3);
-  printDigits(second(), 6);
-  canvas2.fillScreen(0);
-  canvas2.setCursor(0, CANVAS_Y - 3);
-  canvas2.print(lcdBuf);
-  tft.drawBitmap(113, 4, canvas2.getBuffer(), CANVAS_X2, CANVAS_Y, TEXTCOLOR, BACKGROUND);
+  if (now() != lastDrawClock)
+  {
+    printDigits(hour(), 0);
+    printDigits(minute(), 3);
+    printDigits(second(), 6);
+
+    canvas2.fillScreen(0);
+    canvas2.setCursor(0, CANVAS_Y - 3);
+    canvas2.print(lcdBuf);
+    tft.drawBitmap(113, 4, canvas2.getBuffer(), CANVAS_X2, CANVAS_Y, TEXTCOLOR, BACKGROUND);
+
+    lastDrawClock = now();
+    return true;
+  }
+  else
+    return false;
 }
 
 void Display::drawMeasured(float tempInt, float tempExt, float tempFloor, float tempCeiling,
@@ -172,20 +179,42 @@ void Display::drawMeasured(float tempInt, float tempExt, float tempFloor, float 
   printValue(GRID_X2 + 25, GRID_Y7, tempFloor, 1);
 }
 
-void Display::drawHeat(bool active)
+void Display::drawHeat(bool on, bool active)
 {
-  if (active)
-    imgReader.drawBMP((char *)"/gheat.bmp", tft, STAT_X, STAT_Y1);
-  else
-    imgReader.drawBMP((char *)"/heat.bmp", tft, STAT_X, STAT_Y1);
+  if (on)
+  {
+    if (active)
+    {
+      if (!lastHeatOn || lastHeatOn && !lastHeatActive)
+        imgReader.drawBMP((char *)"/gheat.bmp", tft, STAT_X, STAT_Y1);
+    }
+    else
+    {
+      if (!lastHeatOn || lastHeatOn && lastHeatActive)
+        imgReader.drawBMP((char *)"/heat.bmp", tft, STAT_X, STAT_Y1);
+    }
+  }
+  else if (lastHeatOn)
+    tft.fillRect(STAT_X, STAT_Y1, 48, 48, BACKGROUND);
 }
 
-void Display::drawCircul(bool active)
+void Display::drawCircul(bool on, bool active)
 {
-  if (active)
-    imgReader.drawBMP((char *)"/gcircul.bmp", tft, STAT_X, STAT_Y2);
-  else
-    imgReader.drawBMP((char *)"/circul.bmp", tft, STAT_X, STAT_Y2);
+  if (on)
+  {
+    if (active)
+    {
+      if (!lastCirculOn || lastCirculOn && !lastCirculActive)
+        imgReader.drawBMP((char *)"/gcircul.bmp", tft, STAT_X, STAT_Y2);
+    }
+    else
+    {
+      if (!lastCirculOn || lastCirculOn && lastCirculActive)
+        imgReader.drawBMP((char *)"/circul.bmp", tft, STAT_X, STAT_Y2);
+    }
+  }
+  else if (lastCirculOn)
+    tft.fillRect(STAT_X, STAT_Y2, 48, 48, BACKGROUND);
 }
 
 void Display::drawLAN(bool fault)

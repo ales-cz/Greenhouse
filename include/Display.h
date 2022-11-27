@@ -44,16 +44,18 @@ private:
   char lcdBuf[LCD_BUF_LEN];
   void printDigits(int digits, int i);
   void printValue(int x, int y, float value, int digits);
+  bool lastHeatOn = 0, lastHeatActive = 0, lastCirculOn = 0, lastCirculActive = 0;
+  time_t lastDrawClock;
 
 public:
   Display(int8_t tftDC, int8_t hspiSS, int8_t tftRST, byte tftBL);
   void begin();
   void init();
-  void drawClock();
+  bool drawClock();
   void drawMeasured(float tempInt, float tempExt, float tempFloor, float tempCeiling,
                     float humInt, float humExt, float illum);
-  void drawHeat(bool active);
-  void drawCircul(bool active);
+  void drawHeat(bool on, bool active);
+  void drawCircul(bool on, bool active);
   void drawLAN(bool fault);
   void drawCloud(bool fault);
 };

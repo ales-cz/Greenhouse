@@ -8,6 +8,7 @@
 #include "Sensors.h"
 #include "Actuators.h"
 #include "Network.h"
+#include "TimeSyncNTP.h"
 #include "Cloud.h"
 
 // nastavení PINů

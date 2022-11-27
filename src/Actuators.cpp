@@ -88,6 +88,16 @@ void Actuators::setCirculHyst(float hyst)
   circulHyst = hyst;
 }
 
+bool Actuators::isThermostat()
+{
+  return thermostat;
+}
+
+bool Actuators::isCirculation()
+{
+  return circulation;
+}
+
 bool Actuators::isHeating()
 {
   return heating;

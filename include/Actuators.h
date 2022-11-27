@@ -22,6 +22,8 @@ public:
     void setReqCirculDiff(float diff);
     void setHeatHyst(float hyst);
     void setCirculHyst(float hyst);
+    bool isThermostat();
+    bool isCirculation();
     bool isHeating();
     bool isCirulating();
 };
