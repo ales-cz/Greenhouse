@@ -135,23 +135,23 @@ void Display::drawMeasured(float tempInt, float tempExt, float tempFloor, float 
   // Backlight control
   if (illum <= 10.0)
     lcdBackLight = 25;
-  else if (illum > 11.0 && illum < 40)
+  else if (illum > 10.0 && illum <= 50)
     lcdBackLight = 50;
-  else if (illum > 50.0 && illum < 190)
+  else if (illum > 50.0 && illum <= 200)
     lcdBackLight = 75;
-  else if (illum > 200.0 && illum < 390)
+  else if (illum > 200.0 && illum <= 400)
     lcdBackLight = 100;
-  else if (illum > 400.0 && illum < 900)
+  else if (illum > 400.0 && illum <= 1000)
     lcdBackLight = 125;
-  else if (illum > 1000.0 && illum < 4900.0)
+  else if (illum > 1000.0 && illum <= 5000.0)
     lcdBackLight = 150;
-  else if (illum > 5000.0 && illum < 9000.0)
+  else if (illum > 5000.0 && illum <= 10000.0)
     lcdBackLight = 175;
-  else if (illum > 10000.0 && illum < 29000.0)
+  else if (illum > 10000.0 && illum <= 30000.0)
     lcdBackLight = 200;
-  else if (illum > 30000.0 && illum < 39000.0)
+  else if (illum > 30000.0 && illum <= 40000.0)
     lcdBackLight = 225;
-  else if (illum >= 40000.0)
+  else if (illum > 40000.0)
     lcdBackLight = 255;
 
   ledcWrite(LED_CHANNEL, lcdBackLight);
