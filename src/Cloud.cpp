@@ -1,7 +1,7 @@
 #include "Settings.h"
 #include "Cloud.h"
 
-Cloud::Cloud()
+Cloud::Cloud() : client(base_client, TAs, (size_t)TAs_NUM, SSL_RAND)
 {
 }
 

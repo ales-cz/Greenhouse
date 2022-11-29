@@ -22,6 +22,7 @@
 #define DHT22INT 32 // DHT22 internal
 #define DHT22EXT 4  // DHT22 external
 #define OW 33       // OneWire bus (DS18B20)
+#define SSL_RAND 36 // Analog pin to get semi-random data from for SSL, don't connect it!
 
 // ostatní konstanty
 #define WDT_TIMEOUT 4 // watchdog timeout [s]

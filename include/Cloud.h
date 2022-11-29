@@ -2,17 +2,21 @@
 #define MY_CLOUD_H
 #include <Arduino.h>
 #include <Ethernet.h>
+#include <SSLClient.h>
+#include "Certificates.h"
 #include <ThingSpeak.h>
 
+#define TS_ENABLE_SSL      // For HTTPS SSL connection
 #define DELAY_UPDATE 20000 // cloudUpdate
 
 class Cloud
 {
 
 private:
+    EthernetClient base_client;
+    SSLClient client;
     unsigned long channelNumber;
     char writeAPIKey[17] = "99A0T3QXV0LMP6MA";
-    EthernetClient client;
     u_long lastUpdate;
 
 public:
