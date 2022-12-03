@@ -13,7 +13,7 @@ DS3232RTC myRTC;
 
 // Variables
 float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum; // Measured values
-byte cloudUpdateStatus, cloudLastUpdateStatus = 200;
+byte cloudUpdateStatus;
 
 void setup()
 {
@@ -27,8 +27,6 @@ void setup()
   //}
   // prefs.end(); // Close the Preferences
   // ESP.restart(); // Restart ESP
-
-  pinMode(VSPI_SS, OUTPUT); // VSPI SS Ethernet
 
   myRTC.begin();                            // IIC bus initialization
   myRTC.squareWave(DS3232RTC::SQWAVE_NONE); // stop oscillating signals at SQW Pin
@@ -59,21 +57,16 @@ void loop()
   if (sensors.read(&tempInt, &tempExt, &tempFloor, &tempCeiling, &humInt, &humExt, &illum))
   {
     display.drawMeasured(tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum);
+    
     actuators.set(tempInt, tempFloor, tempCeiling);
-    if (cloud.update(&cloudUpdateStatus, tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum,
-                     actuators.isHeating(), actuators.isCirulating()))
-    {
-      if (cloudUpdateStatus != cloudLastUpdateStatus)
-      {
-        if (cloudUpdateStatus == 200)
-          display.drawCloud(false);
-        else
-          display.drawCloud(true);
-      }
-    }
-
+    
     display.drawHeat(actuators.isThermostat(), actuators.isHeating());
     display.drawCircul(actuators.isCirculation(), actuators.isCirulating());
+    display.drawLAN(Ethernet.linkStatus());
+
+    if (cloud.update(&cloudUpdateStatus, tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum,
+                     actuators.isHeating(), actuators.isCirulating()))
+      display.drawCloud(cloudUpdateStatus);
   }
 
   esp_task_wdt_reset();

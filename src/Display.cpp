@@ -102,8 +102,8 @@ void Display::init()
   tft.setCursor(GRID_X2 + 103, GRID_Y7 + CANVAS_Y);
   tft.print('C');
 
-  drawLAN(false);
-  drawCloud(false);
+  drawLAN(LinkON);
+  drawCloud(200);
 }
 
 bool Display::drawClock()
@@ -217,18 +217,26 @@ void Display::drawCircul(bool on, bool active)
     tft.fillRect(STAT_X, STAT_Y2, 48, 48, BACKGROUND);
 }
 
-void Display::drawLAN(bool fault)
+void Display::drawLAN(byte status)
 {
-  if (!fault)
-    imgReader.drawBMP((char *)"/lan.bmp", tft, STAT_X, STAT_Y3);
-  else
-    imgReader.drawBMP((char *)"/ylan.bmp", tft, STAT_X, STAT_Y3);
+  if (status != lastLANStatus)
+  {
+    if (status == LinkON)
+      imgReader.drawBMP((char *)"/lan.bmp", tft, STAT_X, STAT_Y3);
+    else
+      imgReader.drawBMP((char *)"/ylan.bmp", tft, STAT_X, STAT_Y3);
+  }
+  lastLANStatus = status;
 }
 
-void Display::drawCloud(bool fault)
+void Display::drawCloud(byte status)
 {
-  if (!fault)
-    imgReader.drawBMP((char *)"/cloud.bmp", tft, STAT_X, STAT_Y4);
-  else
-    imgReader.drawBMP((char *)"/ycloud.bmp", tft, STAT_X, STAT_Y4);
+  if (status != lastCloudUpdateStatus)
+  {
+    if (status == 200)
+      imgReader.drawBMP((char *)"/cloud.bmp", tft, STAT_X, STAT_Y4);
+    else
+      imgReader.drawBMP((char *)"/ycloud.bmp", tft, STAT_X, STAT_Y4);
+  }
+  lastCloudUpdateStatus = status;
 }

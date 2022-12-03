@@ -18,32 +18,39 @@ byte Cloud::update(byte *status, float tempInt, float tempExt, float tempFloor, 
 {
   if (millis() - lastUpdate >= DELAY_UPDATE)
   {
-    ThingSpeak.setField(1, tempInt);
-    ThingSpeak.setField(2, humInt);
-    ThingSpeak.setField(3, tempExt);
-    ThingSpeak.setField(4, humExt);
-    ThingSpeak.setField(5, tempFloor);
-    ThingSpeak.setField(6, tempCeiling);
-    ThingSpeak.setField(7, illum);
-    if (heating && circulating)
-      ThingSpeak.setStatus("Vytápění + cirkulace");
-    else if (heating)
-      ThingSpeak.setStatus("Vytápění");
-    else if (circulating)
-      ThingSpeak.setStatus("Cirkulace");
-    *status = ThingSpeak.writeFields(channelNumber, writeAPIKey);
-    if (*status == 200)
+    lastUpdate = millis();
+
+    if (Ethernet.linkStatus() == LinkON)
     {
-      log_i("Channel update successful.");
+      ThingSpeak.setField(1, tempInt);
+      ThingSpeak.setField(2, humInt);
+      ThingSpeak.setField(3, tempExt);
+      ThingSpeak.setField(4, humExt);
+      ThingSpeak.setField(5, tempFloor);
+      ThingSpeak.setField(6, tempCeiling);
+      ThingSpeak.setField(7, illum);
+      if (heating && circulating)
+        ThingSpeak.setStatus("Vytápění + cirkulace");
+      else if (heating)
+        ThingSpeak.setStatus("Vytápění");
+      else if (circulating)
+        ThingSpeak.setStatus("Cirkulace");
+      *status = ThingSpeak.writeFields(channelNumber, writeAPIKey);
+      if (*status == 200)
+      {
+        log_i("Channel update successful.");
+      }
+      else
+      {
+        log_e("Problem updating channel. HTTP error code: %d", *status);
+      }
     }
     else
     {
-      log_e("Problem updating channel. HTTP error code: %d", *status);
+      *status = 0;
+      log_w("Unable to update cloud, eth status: %d", Ethernet.linkStatus());
     }
-
-    lastUpdate = millis();
     return true;
   }
-  else
-    return false;
+  return false;
 }

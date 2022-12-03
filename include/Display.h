@@ -45,6 +45,7 @@ private:
   void printDigits(int digits, int i);
   void printValue(int x, int y, float value, int digits);
   bool lastHeatOn = 0, lastHeatActive = 0, lastCirculOn = 0, lastCirculActive = 0;
+  byte lastCloudUpdateStatus = 0, lastLANStatus = 0;
   time_t lastDrawClock;
 
 public:
@@ -56,7 +57,7 @@ public:
                     float humInt, float humExt, float illum);
   void drawHeat(bool on, bool active);
   void drawCircul(bool on, bool active);
-  void drawLAN(bool fault);
-  void drawCloud(bool fault);
+  void drawLAN(byte status);
+  void drawCloud(byte status);
 };
 #endif

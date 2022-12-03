@@ -1,12 +1,15 @@
 #ifndef MY_CLOUD_H
 #define MY_CLOUD_H
+
+#define TS_ENABLE_SSL // For HTTPS SSL connection
+#define WIFISSLCLIENT_H
+
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <SSLClient.h>
 #include "Certificates.h"
 #include <ThingSpeak.h>
 
-#define TS_ENABLE_SSL      // For HTTPS SSL connection
 #define DELAY_UPDATE 20000 // cloudUpdate
 
 class Cloud

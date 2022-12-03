@@ -19,6 +19,7 @@ void Network::begin(Preferences *prefs)
         prefs->getUChar("dns3", 2),
         prefs->getUChar("dns4", 1));
 
+    pinMode(VSPI_SS, OUTPUT); // VSPI SS Ethernet
     Ethernet.init(VSPI_SS);
     if (dhcp)
     {
@@ -48,4 +49,7 @@ void Network::begin(Preferences *prefs)
     {
         log_i("IP address: %s", Ethernet.localIP().toString());
     }
+
+    // give the Ethernet module a second to initialize:
+    delay(1000);
 }
