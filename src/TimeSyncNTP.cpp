@@ -44,7 +44,7 @@ time_t TimeSyncNTP::getNtpTime()
             secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
             secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
             secsSince1900 |= (unsigned long)packetBuffer[43];
-            return secsSince1900 - 2208988800UL + (timeZone + summerTime) * SECS_PER_HOUR;
+            return secsSince1900 - 2208988800UL + (timeZone + timeDLS) * SECS_PER_HOUR;
         }
     }
     log_e("No NTP Response");
@@ -57,10 +57,11 @@ TimeSyncNTP::TimeSyncNTP()
 
 void TimeSyncNTP::begin(Preferences *prefs, DS3232RTC *myRTC)
 {
+    this->prefs = prefs;
     this->myRTC = myRTC;
 
     timeZone = prefs->getShort("timeZone", 1);
-    summerTime = prefs->getBool("summerTime", 0);
+    timeDLS = prefs->getShort("timeDLS", 0);
     timeServer = prefs->getString("timeServer", "cz.pool.ntp.org");
 
     udp.begin(LOCAL_PORT);
@@ -91,4 +92,26 @@ bool TimeSyncNTP::update()
             log_w("Unable to update time, eth status: %d", lastLinkStatus);
     }
     return false;
+}
+
+byte TimeSyncNTP::getTimeZone()
+{
+    return timeZone;
+}
+
+void TimeSyncNTP::setTimeZone(byte tz)
+{
+    timeZone = tz;
+    prefs->putShort("timeZone", timeZone);
+}
+
+byte TimeSyncNTP::getTimeDLS()
+{
+    return timeDLS;
+}
+
+void TimeSyncNTP::setTimeDLS(byte tDLS)
+{
+    timeDLS = tDLS;
+    prefs->putShort("timeDLS", timeDLS);
 }

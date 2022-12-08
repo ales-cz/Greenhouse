@@ -1,8 +1,8 @@
 #include "Settings.h"
 #include "Sensors.h"
 
-Sensors::Sensors(int8_t pDHT22Int, int8_t pDHT22Ext, int8_t pOW)
-    : dht22Int(pDHT22Int, DHTTYPE), dht22Ext(pDHT22Ext, DHTTYPE), owBus(pOW), ds18b20(&owBus)
+Sensors::Sensors()
+    : dht22Int(DHT22INT, DHTTYPE), dht22Ext(DHT22EXT, DHTTYPE), owBus(OW), ds18b20(&owBus)
 {
 }
 

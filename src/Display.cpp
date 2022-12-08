@@ -26,28 +26,304 @@ void Display::printValue(int x, int y, float value, int digits)
   tft.drawBitmap(x, y + 2, canvas1.getBuffer(), CANVAS_X1, CANVAS_Y, TEXTCOLOR, BACKGROUND);
 }
 
-Display::Display(int8_t tftDC, int8_t hspiSS, int8_t tftRST, byte tftBL)
-    : spiBus(HSPI), tft(&spiBus, tftDC, hspiSS, tftRST), canvas1(CANVAS_X1, CANVAS_Y), canvas2(CANVAS_X2, CANVAS_Y)
+void Display::procTouch()
+{
+  touchPoint = ts.getPoint();
+
+  btnX = touchPoint.x;
+  btnY = touchPoint.y;
+
+  btnX = map(btnX, 3720, 150, 319, 0);
+  btnY = map(btnY, 3850, 250, 239, 0);
+}
+
+int Display::procBtnPress(ItemMenu &theMenu)
+{
+  int theItem = 0, newItem = 0;
+
+  procTouch();
+  theItem = theMenu.press(btnX, btnY);
+
+  if (theItem == -1)
+    return -1;
+
+  theMenu.drawRow(theItem, BUTTON_PRESSED);
+
+  delay(DEBOUNCE);
+
+  while (ts.touched())
+  {
+    procTouch();
+    newItem = theMenu.press(btnX, btnY);
+    if (theItem != newItem)
+    {
+      theMenu.drawRow(theItem, BUTTON_NOTPRESSED);
+      return -1;
+    }
+  }
+  if (theItem == newItem)
+  {
+    theMenu.drawRow(theItem, BUTTON_NOTPRESSED);
+    return theItem;
+  }
+  theMenu.drawRow(theItem, BUTTON_NOTPRESSED);
+  return -1;
+}
+
+int Display::procBtnPress(EditMenu &theMenu)
+{
+
+  int theItem = 0, newItem = 0;
+
+  procTouch();
+  theItem = theMenu.press(btnX, btnY);
+
+  if (theItem == -1)
+    return -1;
+
+  theMenu.drawRow(theItem);
+
+  delay(DEBOUNCE);
+
+  while (ts.touched())
+  {
+    procTouch();
+    newItem = theMenu.press(btnX, btnY);
+    if (theItem != newItem)
+    {
+      theMenu.drawRow(theItem);
+      return -1;
+    }
+  }
+  if (theItem == newItem)
+  {
+    theMenu.drawRow(theItem);
+    return theItem;
+  }
+  return theItem;
+}
+
+void Display::procHeatMenu()
+{
+  int editMenuOption = 1;
+  bool thermostat;
+  float reqHeatTemp, heatHyst;
+
+  tft.fillScreen(MENU_BACKGROUND);
+  heatMenu.draw();
+
+  while (editMenuOption != 0)
+  {
+    if (ts.touched())
+      editMenuOption = procBtnPress(heatMenu);
+  }
+
+  // process the menu selections
+  thermostat = (bool)heatMenu.value[menuThermostat];
+  if (thermostat != actuators->getThermostat())
+    actuators->setThermostat(thermostat);
+
+  reqHeatTemp = heatMenu.value[menuReqHeatTemp];
+  if (reqHeatTemp != actuators->getReqHeatTemp())
+    actuators->setReqHeatTemp(reqHeatTemp);
+
+  heatHyst = heatMenu.value[menuHeatHyst];
+  if (heatHyst != actuators->getHeatHyst())
+    actuators->setHeatHyst(heatHyst);
+}
+
+void Display::procCirculMenu()
+{
+  int editMenuOption = 1;
+  bool circulation;
+  float reqCirculDiff, circulHyst;
+
+  tft.fillScreen(MENU_BACKGROUND);
+  circulMenu.draw();
+
+  while (editMenuOption != 0)
+  {
+    if (ts.touched())
+      editMenuOption = procBtnPress(circulMenu);
+  }
+
+  // process the menu selections
+  circulation = (bool)circulMenu.value[menuCirculation];
+  if (circulation != actuators->getCirculation())
+    actuators->setCirculation(circulation);
+
+  reqCirculDiff = circulMenu.value[menuReqCirculDiff];
+  if (reqCirculDiff != actuators->getReqCirculDiff())
+    actuators->setReqCirculDiff(reqCirculDiff);
+
+  circulHyst = circulMenu.value[menuCirculHyst];
+  if (circulHyst != actuators->getCirculHyst())
+    actuators->setCirculHyst(circulHyst);
+}
+
+void Display::procTimeMenu()
+{
+  int editMenuOption = 1;
+  byte timeZone, timeDLS;
+
+  tft.fillScreen(MENU_BACKGROUND);
+  timeMenu.draw();
+
+  while (editMenuOption != 0)
+  {
+    if (ts.touched())
+      editMenuOption = procBtnPress(timeMenu);
+  }
+
+  // process the menu selections
+  timeZone = (byte)timeMenu.value[menuTimeZone];
+  if (timeZone != timeSyncNTP->getTimeZone())
+    timeSyncNTP->setTimeZone(timeZone);
+
+  timeDLS = (byte)timeMenu.value[menuTimeDLS];
+  if (timeDLS != timeSyncNTP->getTimeDLS())
+    timeSyncNTP->setTimeDLS(timeDLS);
+}
+
+int Display::procMainMenu()
+{
+  int mainMenuOption = 1;
+
+  delay(DEBOUNCE);
+  if (ts.touched())
+  {
+    esp_task_wdt_delete(NULL);
+
+    tft.fillScreen(MENU_BACKGROUND);
+    mainMenu.draw();
+
+    while (mainMenuOption != 0)
+    {
+      if (ts.touched())
+      {
+        mainMenuOption = procBtnPress(mainMenu);
+
+        if (mainMenuOption == mainMenuHeat)
+        {
+          procHeatMenu();
+          tft.fillScreen(MENU_BACKGROUND);
+          mainMenu.draw();
+        }
+        else if (mainMenuOption == mainMenuCircul)
+        {
+          procCirculMenu();
+          tft.fillScreen(MENU_BACKGROUND);
+          mainMenu.draw();
+        }
+        else if (mainMenuOption == mainMenuTime)
+        {
+          procTimeMenu();
+          tft.fillScreen(MENU_BACKGROUND);
+          mainMenu.draw();
+        }
+      }
+    }
+    esp_task_wdt_add(NULL);
+    init();
+    return mainMenuOption;
+  }
+  return -1;
+}
+
+Display::Display()
+    : spiBus(HSPI),
+      tft(&spiBus, TFT_DC, TFT_CS, TFT_RST),
+      ts(TS_CS),
+      canvas1(CANVAS_X1, CANVAS_Y),
+      canvas2(CANVAS_X2, CANVAS_Y),
+      mainMenu(&tft, true),
+      heatMenu(&tft, true),
+      circulMenu(&tft, true),
+      timeMenu(&tft, true)
 {
   // configure display backlight PWM
   ledcSetup(LED_CHANNEL, LED_FREQ, LED_RESOLUTION);
-  ledcAttachPin(tftBL, LED_CHANNEL);
+  ledcAttachPin(TFT_BL, LED_CHANNEL);
 }
 
-void Display::begin()
+void Display::begin(Actuators *actuators, TimeSyncNTP *timeSyncNTP)
 {
+  this->actuators = actuators;
+  this->timeSyncNTP = timeSyncNTP;
+
   spiBus.begin(); // Display
-  pinMode(HSPI_SS, OUTPUT);
+
   tft.begin();
+  tft.setRotation(1);
+
+  ts.begin(spiBus);
+  ts.setRotation(3);
+
   // initialize SPIFFS
   if (!SPIFFS.begin())
     log_e("SPIFFS initialisation failed!");
+
+  mainMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, ROW_HEIGHT, ROWS, "Settings", FONT_ITEM, FONT_TITLE);
+
+  mainMenuHeat = mainMenu.addNI("Heating");
+  mainMenuCircul = mainMenu.addNI("Circulation");
+  mainMenuTime = mainMenu.addNI("Time");
+
+  mainMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
+  mainMenu.setTitleBarSize(0, 0, TITLE_BAR_WIDTH, TITLE_BAR_HEIGHT);
+  mainMenu.setTitleTextMargins(115, TITLE_TOP_MARGIN);
+  mainMenu.setItemTextMargins(ITEM_LEFT_MARGIN, ITEM_TOP_MARGIN, ITEM_MENU_MARGIN);
+  mainMenu.setMenuBarMargins(BAR_LEFT_MARGIN, BAR_WIDTH, BAR_BORDER_RADIUS, BAR_BORDER_THICKNESS);
+
+  heatMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, MENU_SELECTTEXT, MENU_SELECT, DATA_COLUMN,
+                ROW_HEIGHT, ROWS, "Heating", FONT_ITEM, FONT_TITLE);
+
+  menuThermostat = heatMenu.addNI("Heating", actuators->getThermostat(), 0, sizeof(OffOnItems) / sizeof(OffOnItems[0]), 1, 0, OffOnItems);
+  menuReqHeatTemp = heatMenu.addNI("Temperature", actuators->getReqHeatTemp(), 0, 30, .5, 1, NULL);
+  menuHeatHyst = heatMenu.addNI("Hystheresis", actuators->getHeatHyst(), 0, 5, .5, 1, NULL);
+
+  heatMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
+  heatMenu.setTitleBarSize(0, 0, TITLE_BAR_WIDTH, TITLE_BAR_HEIGHT);
+  heatMenu.setTitleTextMargins(115, TITLE_TOP_MARGIN);
+  heatMenu.setItemTextMargins(ITEM_LEFT_MARGIN, ITEM_TOP_MARGIN, ITEM_MENU_MARGIN);
+  heatMenu.setMenuBarMargins(BAR_LEFT_MARGIN, BAR_WIDTH, BAR_BORDER_RADIUS, BAR_BORDER_THICKNESS);
+  heatMenu.setItemColors(MENU_DISABLE, MENU_HIGHBORDER, MENU_SELECTBORDER);
+  heatMenu.setIncrementDelay(INCREMENT_DELAY);
+
+  circulMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, MENU_SELECTTEXT, MENU_SELECT, DATA_COLUMN,
+                  ROW_HEIGHT, ROWS, "Circulation", FONT_ITEM, FONT_TITLE);
+
+  menuCirculation = circulMenu.addNI("Circulation", actuators->getCirculation(), 0, sizeof(OffOnItems) / sizeof(OffOnItems[0]), 1, 0, OffOnItems);
+  menuReqCirculDiff = circulMenu.addNI("Difference", actuators->getReqCirculDiff(), 0, 15, 0.5, 1, NULL);
+  menuCirculHyst = circulMenu.addNI("Hystheresis", actuators->getCirculHyst(), 0, 15, 0.5, 1, NULL);
+
+  circulMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
+  circulMenu.setTitleBarSize(0, 0, TITLE_BAR_WIDTH, TITLE_BAR_HEIGHT);
+  circulMenu.setTitleTextMargins(100, TITLE_TOP_MARGIN);
+  circulMenu.setItemTextMargins(ITEM_LEFT_MARGIN, ITEM_TOP_MARGIN, ITEM_MENU_MARGIN);
+  circulMenu.setMenuBarMargins(BAR_LEFT_MARGIN, BAR_WIDTH, BAR_BORDER_RADIUS, BAR_BORDER_THICKNESS);
+  circulMenu.setItemColors(MENU_DISABLE, MENU_HIGHBORDER, MENU_SELECTBORDER);
+  circulMenu.setIncrementDelay(INCREMENT_DELAY);
+
+  timeMenu.init(MENU_TEXT, MENU_BACKGROUND, MENU_HIGHLIGHTTEXT, MENU_HIGHLIGHT, MENU_SELECTTEXT, MENU_SELECT, DATA_COLUMN,
+                ROW_HEIGHT, ROWS, "Time", FONT_ITEM, FONT_TITLE);
+
+  menuTimeDLS = timeMenu.addNI("Daylight saving", timeSyncNTP->getTimeDLS(), 0, 1, 1, 0, NULL);
+  menuTimeZone = timeMenu.addNI("Time zone", timeSyncNTP->getTimeZone(), -12, 12, 1, 0);
+
+  timeMenu.setTitleColors(TITLE_TEXT, TITLE_BACK);
+  timeMenu.setTitleBarSize(0, 0, TITLE_BAR_WIDTH, TITLE_BAR_HEIGHT);
+  timeMenu.setTitleTextMargins(132, TITLE_TOP_MARGIN);
+  timeMenu.setItemTextMargins(ITEM_LEFT_MARGIN, ITEM_TOP_MARGIN, ITEM_MENU_MARGIN);
+  timeMenu.setMenuBarMargins(BAR_LEFT_MARGIN, BAR_WIDTH, BAR_BORDER_RADIUS, BAR_BORDER_THICKNESS);
+  timeMenu.setItemColors(MENU_DISABLE, MENU_HIGHBORDER, MENU_SELECTBORDER);
+  timeMenu.setIncrementDelay(INCREMENT_DELAY);
+
   init();
 }
 
 void Display::init()
 {
-  tft.setRotation(1);
   tft.fillScreen(BACKGROUND);
   tft.setTextSize(1);
   tft.setTextColor(TEXTCOLOR);
@@ -102,12 +378,14 @@ void Display::init()
   tft.setCursor(GRID_X2 + 103, GRID_Y7 + CANVAS_Y);
   tft.print('C');
 
-  drawLAN(LinkON);
-  drawCloud(200);
+  drawLAN(LinkON, true);
+  drawCloud(200, true);
 }
 
 bool Display::drawClock()
 {
+  if (ts.touched())
+    procMainMenu();
   if (now() != lastDrawClock)
   {
     printDigits(hour(), 0);
@@ -217,9 +495,9 @@ void Display::drawCircul(bool on, bool active)
     tft.fillRect(STAT_X, STAT_Y2, 48, 48, BACKGROUND);
 }
 
-void Display::drawLAN(byte status)
+void Display::drawLAN(byte status, bool force)
 {
-  if (status != lastLANStatus)
+  if (status != lastLANStatus || force)
   {
     if (status == LinkON)
       imgReader.drawBMP((char *)"/lan.bmp", tft, STAT_X, STAT_Y3);
@@ -229,9 +507,9 @@ void Display::drawLAN(byte status)
   lastLANStatus = status;
 }
 
-void Display::drawCloud(byte status)
+void Display::drawCloud(byte status, bool force)
 {
-  if (status != lastCloudUpdateStatus)
+  if (status != lastCloudUpdateStatus || force)
   {
     if (status == 200)
       imgReader.drawBMP((char *)"/cloud.bmp", tft, STAT_X, STAT_Y4);

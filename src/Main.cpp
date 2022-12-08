@@ -2,14 +2,14 @@
 
 Preferences prefs; // Internal flash
 
-Display display(TFT_DC, HSPI_SS, TFT_RST, TFT_BL);
-Sensors sensors(DHT22INT, DHT22EXT, OW);
-Actuators actuators(HEAT, CIRCUL);
+DS3232RTC myRTC;
+
+Sensors sensors;
+Actuators actuators;
 Network network;
 TimeSyncNTP timeSyncNTP;
 Cloud cloud;
-
-DS3232RTC myRTC;
+Display display;
 
 // Variables
 float tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum; // Measured values
@@ -22,21 +22,19 @@ void setup()
   prefs.begin("greenhouse", false); // Preferences: RW-mode (second parameter = false)
 
   // prefs.clear(); // Remove all preferences under the opened namespace
-  // if (!prefs.isKey("writeAPIKey")) { // Create if not exist
-  //  prefs.putString("writeAPIKey", "99A0T3QXV0LMP6MA");
-  //}
-  // prefs.end(); // Close the Preferences
+  // if (!prefs.isKey("writeAPIKey"))
+  //  prefs.putString("writeAPIKey", "99A0T3QXV0LMP6MA"); // Create preference if not exist
   // ESP.restart(); // Restart ESP
 
   myRTC.begin();                            // IIC bus initialization
   myRTC.squareWave(DS3232RTC::SQWAVE_NONE); // stop oscillating signals at SQW Pin
 
-  display.begin();
   sensors.begin();
   actuators.begin(&prefs);
   network.begin(&prefs);
   timeSyncNTP.begin(&prefs, &myRTC);
   cloud.begin(&prefs);
+  display.begin(&actuators, &timeSyncNTP);
 
   setSyncProvider(myRTC.get);
   setSyncInterval(240);
@@ -57,9 +55,9 @@ void loop()
   if (sensors.read(&tempInt, &tempExt, &tempFloor, &tempCeiling, &humInt, &humExt, &illum))
   {
     display.drawMeasured(tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum);
-    
+
     actuators.set(tempInt, tempFloor, tempCeiling);
-    
+
     display.drawHeat(actuators.isThermostat(), actuators.isHeating());
     display.drawCircul(actuators.isCirculation(), actuators.isCirulating());
     display.drawLAN(Ethernet.linkStatus());

@@ -13,11 +13,12 @@ class TimeSyncNTP
 {
 
 private:
+    Preferences *prefs;
     DS3232RTC *myRTC;
     EthernetUDP udp;
     String timeServer;
-    short timeZone;
-    bool summerTime;
+    byte timeZone;
+    byte timeDLS;
     byte packetBuffer[NTP_PACKET_SIZE]; // buffer to hold incoming and outgoing packets
     int lastLinkStatus = Unknown;
     u_long lastUpdate;
@@ -29,5 +30,9 @@ public:
     TimeSyncNTP();
     void begin(Preferences *prefs, DS3232RTC *myRTC);
     bool update();
+    byte getTimeZone();
+    void setTimeZone(byte tz);
+    byte getTimeDLS();
+    void setTimeDLS(byte tDLS);
 };
 #endif

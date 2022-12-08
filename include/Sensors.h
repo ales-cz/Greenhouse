@@ -24,7 +24,7 @@ private:
     u_long lastRequest;
 
 public:
-    Sensors(int8_t pDHT22Int, int8_t pDHT22Ext, int8_t pOW);
+    Sensors();
     void begin();
     bool read(float *tempInt, float *tempExt, float *tempFloor, float *tempCeiling,
               float *humInt, float *humExt, float *illum);

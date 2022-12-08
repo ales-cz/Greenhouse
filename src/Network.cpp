@@ -19,8 +19,8 @@ void Network::begin(Preferences *prefs)
         prefs->getUChar("dns3", 2),
         prefs->getUChar("dns4", 1));
 
-    pinMode(VSPI_SS, OUTPUT); // VSPI SS Ethernet
-    Ethernet.init(VSPI_SS);
+    pinMode(ETH_CS, OUTPUT); // VSPI CS Ethernet
+    Ethernet.init(ETH_CS);
     if (dhcp)
     {
         if (Ethernet.begin(mac) != 0)
