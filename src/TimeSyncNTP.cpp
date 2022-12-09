@@ -69,11 +69,11 @@ void TimeSyncNTP::begin(Preferences *prefs, DS3232RTC *myRTC)
     update();
 }
 
-bool TimeSyncNTP::update()
+bool TimeSyncNTP::update(bool force)
 {
     time_t ntpTime;
 
-    if (myRTC->oscStopped() || lastLinkStatus != Ethernet.linkStatus() || millis() - lastUpdate >= DELAY_SYNC)
+    if (force || myRTC->oscStopped() || lastLinkStatus != Ethernet.linkStatus() || millis() - lastUpdate >= DELAY_SYNC)
     {
         lastUpdate = millis();
         lastLinkStatus = Ethernet.linkStatus();
@@ -103,6 +103,10 @@ void TimeSyncNTP::setTimeZone(byte tz)
 {
     timeZone = tz;
     prefs->putShort("timeZone", timeZone);
+    update(true);
+    setSyncInterval(0);
+    now();
+    setSyncInterval(240);
 }
 
 byte TimeSyncNTP::getTimeDLS()
@@ -114,4 +118,8 @@ void TimeSyncNTP::setTimeDLS(byte tDLS)
 {
     timeDLS = tDLS;
     prefs->putShort("timeDLS", timeDLS);
+    update(true);
+    setSyncInterval(0);
+    now();
+    setSyncInterval(240);
 }

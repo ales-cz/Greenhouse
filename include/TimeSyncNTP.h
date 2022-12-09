@@ -29,7 +29,7 @@ private:
 public:
     TimeSyncNTP();
     void begin(Preferences *prefs, DS3232RTC *myRTC);
-    bool update();
+    bool update(bool force = false);
     byte getTimeZone();
     void setTimeZone(byte tz);
     byte getTimeDLS();
