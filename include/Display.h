@@ -51,7 +51,7 @@
 #define LCD_BUF_LEN 8
 
 // menu auxiliary constants
-#define DEBOUNCE 5
+#define TOUCH_TRESHOLD 1000
 #define INCREMENT_DELAY 150
 #define ROW_HEIGHT 40
 #define ROWS 3
@@ -112,7 +112,7 @@ private:
 
   void printDigits(int digits, int i);
   void printValue(int x, int y, float value, int digits);
-  void procTouch();
+  bool tsTouched();
   int procBtnPress(ItemMenu &theMenu);
   int procBtnPress(EditMenu &theMenu);
   void procHeatMenu();

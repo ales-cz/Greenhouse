@@ -26,41 +26,35 @@ void Display::printValue(int x, int y, float value, int digits)
   tft.drawBitmap(x, y + 2, canvas1.getBuffer(), CANVAS_X1, CANVAS_Y, TEXTCOLOR, BACKGROUND);
 }
 
-void Display::procTouch()
+bool Display::tsTouched()
 {
   touchPoint = ts.getPoint();
 
-  btnX = touchPoint.x;
-  btnY = touchPoint.y;
-
-  btnX = map(btnX, 3720, 150, 319, 0);
-  btnY = map(btnY, 3850, 250, 239, 0);
+  if (touchPoint.z > TOUCH_TRESHOLD)
+  {
+    btnX = map(touchPoint.x, 3720, 150, 319, 0);
+    btnY = map(touchPoint.y, 3850, 250, 239, 0);
+    return true;
+  }
+  else
+    return false;
 }
 
 int Display::procBtnPress(ItemMenu &theMenu)
 {
   int theItem = 0, newItem = 0;
 
-  procTouch();
   theItem = theMenu.press(btnX, btnY);
 
-  if (theItem == -1)
-    return -1;
+  if (theItem != -1)
+    theMenu.drawRow(theItem, BUTTON_PRESSED);
 
-  theMenu.drawRow(theItem, BUTTON_PRESSED);
-
-  delay(DEBOUNCE);
-
-  while (ts.touched())
+  while (tsTouched())
   {
-    procTouch();
-    newItem = theMenu.press(btnX, btnY);
-    if (theItem != newItem)
-    {
-      theMenu.drawRow(theItem, BUTTON_NOTPRESSED);
-      return -1;
-    }
   }
+
+  newItem = theMenu.press(btnX, btnY);
+
   if (theItem == newItem)
   {
     theMenu.drawRow(theItem, BUTTON_NOTPRESSED);
@@ -72,10 +66,8 @@ int Display::procBtnPress(ItemMenu &theMenu)
 
 int Display::procBtnPress(EditMenu &theMenu)
 {
+  int theItem = 0;
 
-  int theItem = 0, newItem = 0;
-
-  procTouch();
   theItem = theMenu.press(btnX, btnY);
 
   if (theItem == -1)
@@ -83,23 +75,10 @@ int Display::procBtnPress(EditMenu &theMenu)
 
   theMenu.drawRow(theItem);
 
-  delay(DEBOUNCE);
+  while (tsTouched())
+  {
+  }
 
-  while (ts.touched())
-  {
-    procTouch();
-    newItem = theMenu.press(btnX, btnY);
-    if (theItem != newItem)
-    {
-      theMenu.drawRow(theItem);
-      return -1;
-    }
-  }
-  if (theItem == newItem)
-  {
-    theMenu.drawRow(theItem);
-    return theItem;
-  }
   return theItem;
 }
 
@@ -114,7 +93,7 @@ void Display::procHeatMenu()
 
   while (editMenuOption != 0)
   {
-    if (ts.touched())
+    if (tsTouched())
       editMenuOption = procBtnPress(heatMenu);
   }
 
@@ -143,7 +122,7 @@ void Display::procCirculMenu()
 
   while (editMenuOption != 0)
   {
-    if (ts.touched())
+    if (tsTouched())
       editMenuOption = procBtnPress(circulMenu);
   }
 
@@ -171,7 +150,7 @@ void Display::procTimeMenu()
 
   while (editMenuOption != 0)
   {
-    if (ts.touched())
+    if (tsTouched())
       editMenuOption = procBtnPress(timeMenu);
   }
 
@@ -189,45 +168,42 @@ int Display::procMainMenu()
 {
   int mainMenuOption = 1;
 
-  delay(DEBOUNCE);
-  if (ts.touched())
+  esp_task_wdt_delete(NULL);
+
+  tft.fillScreen(MENU_BACKGROUND);
+  mainMenu.draw();
+
+  while (tsTouched())
   {
-    esp_task_wdt_delete(NULL);
-
-    tft.fillScreen(MENU_BACKGROUND);
-    mainMenu.draw();
-
-    while (mainMenuOption != 0)
-    {
-      if (ts.touched())
-      {
-        mainMenuOption = procBtnPress(mainMenu);
-
-        if (mainMenuOption == mainMenuHeat)
-        {
-          procHeatMenu();
-          tft.fillScreen(MENU_BACKGROUND);
-          mainMenu.draw();
-        }
-        else if (mainMenuOption == mainMenuCircul)
-        {
-          procCirculMenu();
-          tft.fillScreen(MENU_BACKGROUND);
-          mainMenu.draw();
-        }
-        else if (mainMenuOption == mainMenuTime)
-        {
-          procTimeMenu();
-          tft.fillScreen(MENU_BACKGROUND);
-          mainMenu.draw();
-        }
-      }
-    }
-    esp_task_wdt_add(NULL);
-    init();
-    return mainMenuOption;
   }
-  return -1;
+
+  while (mainMenuOption != 0)
+  {
+    if (tsTouched())
+    {
+      mainMenuOption = procBtnPress(mainMenu);
+
+      if (mainMenuOption == mainMenuHeat)
+      {
+        procHeatMenu();
+      }
+      else if (mainMenuOption == mainMenuCircul)
+      {
+        procCirculMenu();
+      }
+      else if (mainMenuOption == mainMenuTime)
+      {
+        procTimeMenu();
+      }
+
+      tft.fillScreen(MENU_BACKGROUND);
+      mainMenu.draw();
+    }
+  }
+
+  esp_task_wdt_add(NULL);
+  init();
+  return mainMenuOption;
 }
 
 Display::Display()
@@ -384,8 +360,10 @@ void Display::init()
 
 bool Display::drawClock()
 {
-  if (ts.touched())
+  if (tsTouched())
+  {
     procMainMenu();
+  }
   if (now() != lastDrawClock)
   {
     printDigits(hour(), 0);
