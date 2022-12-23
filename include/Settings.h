@@ -12,18 +12,19 @@
 #include "Cloud.h"
 
 // nastavení PINů
-#define TFT_CS 15   // Display CS
-#define TFT_DC 26   // Display DC
-#define TFT_RST 27  // Display RST
-#define TFT_BL 25   // Display backlight
-#define TS_CS 2     // Touchscreen CS
-#define ETH_CS 5    // Ethernet CS
-#define DHT22INT 32 // DHT22 internal
-#define DHT22EXT 4  // DHT22 external
-#define OW 33       // OneWire bus (DS18B20)
-#define HEAT 16     // Heater output
-#define CIRCUL 17   // Circulation output
+
 #define SSL_RAND 36 // Analog pin to get semi-random data from for SSL, don't connect it!
+#define TFT_RST 32  // Display RST
+#define TFT_DC 33   // Display DC
+#define TFT_BL 25   // Display backlight
+#define TS_CS 26    // Touchscreen CS
+#define OW 27       // OneWire bus (DS18B20)
+#define ETH_CS 5    // Ethernet CS
+#define CIRCUL 17   // Circulation output
+#define HEAT 16     // Heater output
+#define DHT22EXT 4  // DHT22 external
+#define DHT22INT 2  // DHT22 internal
+#define TFT_CS 15   // Display CS
 
 // ostatní konstanty
 #define WDT_TIMEOUT 5 // watchdog timeout [s]
