@@ -20,8 +20,8 @@
 #define TS_CS 26    // Touchscreen CS
 #define OW 27       // OneWire bus (DS18B20)
 #define ETH_CS 5    // Ethernet CS
-#define CIRCUL 17   // Circulation output
-#define HEAT 16     // Heater output
+#define HEAT 17     // Heater output
+#define CIRCUL 16   // Circulation output
 #define DHT22EXT 4  // DHT22 external
 #define DHT22INT 2  // DHT22 internal
 #define TFT_CS 15   // Display CS

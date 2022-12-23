@@ -230,10 +230,10 @@ void Display::begin(Actuators *actuators, TimeSyncNTP *timeSyncNTP)
   spiBus.begin(); // Display
 
   tft.begin();
-  tft.setRotation(1);
+  tft.setRotation(3);
 
   ts.begin(spiBus);
-  ts.setRotation(3);
+  ts.setRotation(1);
 
   // initialize SPIFFS
   if (!SPIFFS.begin())
