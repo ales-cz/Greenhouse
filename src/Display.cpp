@@ -32,8 +32,8 @@ bool Display::tsTouched()
 
   if (touchPoint.z > TOUCH_TRESHOLD)
   {
-    btnX = map(touchPoint.x, 3720, 150, 319, 0);
-    btnY = map(touchPoint.y, 3850, 250, 239, 0);
+    btnX = map(touchPoint.x, 3720, 150, 0, 319);
+    btnY = map(touchPoint.y, 3850, 250, 0, 239);
     return true;
   }
   else
@@ -233,7 +233,7 @@ void Display::begin(Actuators *actuators, TimeSyncNTP *timeSyncNTP)
   tft.setRotation(3);
 
   ts.begin(spiBus);
-  ts.setRotation(1);
+  ts.setRotation(3);
 
   // initialize SPIFFS
   if (!SPIFFS.begin())
