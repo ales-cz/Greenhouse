@@ -59,11 +59,11 @@ void loop()
     actuators.set(tempInt, tempFloor, tempCeiling);
 
     display.drawHeat(actuators.isThermostat(), actuators.isHeating());
-    display.drawCircul(actuators.isCirculation(), actuators.isCirulating());
+    display.drawCircul(actuators.isCirculation(), actuators.isCirculating());
     display.drawLAN(Ethernet.linkStatus());
 
     if (cloud.update(&cloudUpdateStatus, tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum,
-                     actuators.isHeating(), actuators.isCirulating()))
+                     actuators.isHeating(), actuators.isCirculating()))
       display.drawCloud(cloudUpdateStatus);
   }
 

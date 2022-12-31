@@ -138,7 +138,7 @@ bool Actuators::isHeating()
   return heating;
 }
 
-bool Actuators::isCirulating()
+bool Actuators::isCirculating()
 {
   return circulating;
 }

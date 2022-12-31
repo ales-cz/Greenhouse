@@ -16,12 +16,32 @@ void Cloud::begin(Preferences *prefs)
 byte Cloud::update(byte *status, float tempInt, float tempExt, float tempFloor, float tempCeiling,
                    float humInt, float humExt, float illum, bool heating, bool circulating)
 {
+  byte actuatorsState;
+
   if (millis() - lastUpdate >= DELAY_UPDATE)
   {
     lastUpdate = millis();
 
     if (Ethernet.linkStatus() == LinkON)
     {
+      if (heating && circulating)
+      {
+        ThingSpeak.setStatus("Vytápění a cirkulace");
+        actuatorsState = 3;
+      }
+      else if (circulating)
+      {
+        ThingSpeak.setStatus("Cirkulace");
+        actuatorsState = 2;
+      }
+      else if (heating)
+      {
+        ThingSpeak.setStatus("Vytápění");
+        actuatorsState = 1;
+      }
+      else
+        actuatorsState = 0;
+
       ThingSpeak.setField(1, tempInt);
       ThingSpeak.setField(2, humInt);
       ThingSpeak.setField(3, tempExt);
@@ -29,12 +49,8 @@ byte Cloud::update(byte *status, float tempInt, float tempExt, float tempFloor, 
       ThingSpeak.setField(5, tempFloor);
       ThingSpeak.setField(6, tempCeiling);
       ThingSpeak.setField(7, illum);
-      if (heating && circulating)
-        ThingSpeak.setStatus("Vytápění + cirkulace");
-      else if (heating)
-        ThingSpeak.setStatus("Vytápění");
-      else if (circulating)
-        ThingSpeak.setStatus("Cirkulace");
+      ThingSpeak.setField(8, actuatorsState);
+
       *status = ThingSpeak.writeFields(channelNumber, writeAPIKey);
       if (*status == 200)
       {

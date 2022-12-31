@@ -10,7 +10,7 @@
 #include "Certificates.h"
 #include <ThingSpeak.h>
 
-#define DELAY_UPDATE 20000 // cloudUpdate
+#define DELAY_UPDATE 60000 // cloudUpdate
 
 class Cloud
 {

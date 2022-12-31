@@ -31,6 +31,6 @@ public:
     bool isThermostat();
     bool isCirculation();
     bool isHeating();
-    bool isCirulating();
+    bool isCirculating();
 };
 #endif
