@@ -66,6 +66,7 @@ void Actuators::setThermostat(bool state)
 {
   thermostat = state;
   prefs->putBool("thermostat", thermostat);
+  if (!thermostat && heating) setHeat(0);
 }
 
 bool Actuators::getCirculation()
@@ -77,6 +78,7 @@ void Actuators::setCirculation(bool state)
 {
   circulation = state;
   prefs->putBool("circulation", circulation);
+  if (!circulation && circulating) setCircul(0);
 }
 
 float Actuators::getReqHeatTemp()
