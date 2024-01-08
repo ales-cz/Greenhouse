@@ -51,7 +51,7 @@
 #define LCD_BUF_LEN 8
 
 // menu auxiliary constants
-#define TOUCH_TRESHOLD 500
+#define TOUCH_TRESHOLD 800
 #define INCREMENT_DELAY 150
 #define ROW_HEIGHT 40
 #define ROWS 3
