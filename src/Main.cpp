@@ -51,7 +51,7 @@ void setup()
 void loop()
 {
   timeSyncNTP.update();
-  display.drawClock();
+  //display.drawClock(); přestěhováno na konec loop, aby nedošlo k zablokování v menu před spuštěním důležitých akcí
   if (sensors.read(&tempInt, &tempExt, &tempFloor, &tempCeiling, &humInt, &humExt, &illum))
   {
     display.drawMeasured(tempInt, tempExt, tempFloor, tempCeiling, humInt, humExt, illum);
@@ -66,6 +66,6 @@ void loop()
                      actuators.isHeating(), actuators.isCirculating()))
       display.drawCloud(cloudUpdateStatus);
   }
-
+  display.drawClock();
   esp_task_wdt_reset();
 }

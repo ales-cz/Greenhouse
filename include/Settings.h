@@ -27,6 +27,6 @@
 #define TFT_CS 15   // Display CS
 
 // ostatní konstanty
-#define WDT_TIMEOUT 5 // watchdog timeout [s]
+#define WDT_TIMEOUT 300 // watchdog timeout [s]
 
 #endif

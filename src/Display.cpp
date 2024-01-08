@@ -168,7 +168,7 @@ int Display::procMainMenu()
 {
   int mainMenuOption = 1;
 
-  esp_task_wdt_delete(NULL);
+  //esp_task_wdt_delete(NULL);
 
   tft.fillScreen(MENU_BACKGROUND);
   mainMenu.draw();
@@ -201,7 +201,7 @@ int Display::procMainMenu()
     }
   }
 
-  esp_task_wdt_add(NULL);
+  //esp_task_wdt_add(NULL);
   init();
   return mainMenuOption;
 }
